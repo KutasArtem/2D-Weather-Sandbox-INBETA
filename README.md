@@ -110,3 +110,4 @@ Pako: Only used for data compression to reduce save file sizes. Size reduction c
   4. Open project folder in VS Code
   5. Open index.html
   6. Start live server (Go Live), automatically opens page in browser
+  7. if you did all, your code in your hands.
