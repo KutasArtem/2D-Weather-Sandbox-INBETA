@@ -8,7 +8,6 @@ uniform vec2 texelSize;
 
 uniform vec2 aspectRatios; // sim   canvas
 uniform vec3 view;         // Xpos  Ypos    Zoom
-uniform float pitch25D;    // 0 = flat 2D, 0.4-0.7 = 2.5D tilt
 
 out vec2 texCoord;         // normalized
 out vec2 fragCoord;        // non normalized fragment coordinate
@@ -24,44 +23,29 @@ uniform float Xmult;       // gl.uniform1f(gl.getUniformLocation(skyBackgroundDi
 
 const float Ymult = 5.;    // 5.0
 
-vec2 apply25DPitch(vec2 pos)
-{
-  if (pitch25D <= 0.0)
-    return pos;
-
-  float p = clamp(pitch25D, 0.0, 1.0);
-  float angle = p * 0.9;
-  float cosA = cos(angle);
-  float sinA = sin(angle);
-
-  float x = pos.x;
-  float y = pos.y;
-  float z = y * 0.35;
-
-  float newY = y * cosA - z * sinA;
-  float newZ = y * sinA + z * cosA;
-
-  return vec2(x, newY);
-}
-
 void main()
 {
   vec2 texCoordAdjusted = vertTexCoord;
   texCoordAdjusted.x *= Xmult;
   texCoordAdjusted.y *= Ymult;
 
-  texCoordAdjusted.x -= (Xmult - 1.0) / (2. * texelSize.x);
+  texCoordAdjusted.x -= (Xmult - 1.0) / (2. * texelSize.x); // make sure the position of texture coordinates stays constant on the screen
   texCoordAdjusted.y -= (Ymult - 1.0) / (2. * texelSize.y);
 
+  // wrapped arround edge
   fragCoord = texCoordAdjusted;
-  texCoord = texCoordAdjusted * texelSize;
+  texCoord = texCoordAdjusted * texelSize; // normalize
+
+  // single area, no wrapping
+  // fragCoord = vertTexCoord;
+  // texCoord = vertTexCoord * texelSize; // normalize
 
   texCoordXmY0 = texCoord + vec2(-texelSize.x, 0.0);
   texCoordXpY0 = texCoord + vec2(texelSize.x, 0.0);
   texCoordX0Yp = texCoord + vec2(0.0, texelSize.y);
   texCoordX0Ym = texCoord + vec2(0.0, -texelSize.y);
 
-  vec2 outpos = apply25DPitch(vertPosition);
+  vec2 outpos = vertPosition;
 
   outpos.x *= Xmult;
   outpos.y *= Ymult;
@@ -69,7 +53,7 @@ void main()
   outpos.x += view.x;
   outpos.y += view.y * aspectRatios[0];
 
-  outpos *= view[2];
+  outpos *= view[2]; // zoom
 
   outpos.y *= aspectRatios[1] / aspectRatios[0];
 

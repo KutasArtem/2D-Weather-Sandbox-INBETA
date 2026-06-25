@@ -258,30 +258,21 @@ void main()
       feedback[HEAT] -= subli * evapHeat;
       feedback[HEAT] -= subli * meltingHeat;
 
-      // Update position with improved 2.5D physics
-      vec2 windVel = base.xy;
+      // Update position
+      // move with air    * 2. because droplet position goes from -1. to 1
+      newPos += base.xy / resolution * 2.;
+      newPos.y -= fallSpeed * newDensity * sqrt(totalMass / surfaceArea); // fall speed relative to air
+      /*
+       // falling at fixed speed:
+      float cellHeight = texelSize.y * 12000.0; // in meters
+      float realSecPerIter = 0.288;
+      float metersPerSec = 6.0;
+      float cellsPerSec = metersPerSec / cellHeight;
+      float cellsPerIter = cellsPerSec * realSecPerIter;
+      newPos.y -= cellsPerIter * 2. * texelSize.y;
+      */
 
-      float turbulenceStrength = 0.00015;
-      float turbX = sin(dropPosition.x * 12.0 + iterNum * 0.05 + dropPosition.y * 3.0) * turbulenceStrength;
-      float turbY = cos(dropPosition.y * 10.0 + iterNum * 0.04 + dropPosition.x * 2.5) * turbulenceStrength * 0.5;
-      turbX += sin(dropPosition.x * 25.0 - iterNum * 0.08) * turbulenceStrength * 0.3;
-      turbY += cos(dropPosition.y * 20.0 + iterNum * 0.06) * turbulenceStrength * 0.2;
-
-      float updraftStrength = 0.00008;
-      float updraft = sin(dropPosition.x * 8.0 + iterNum * 0.03) * updraftStrength;
-      updraft += cos(dropPosition.y * 6.0 - iterNum * 0.025) * updraftStrength * 0.6;
-      updraft *= max(0.0, 1.0 - (dropPosition.y + 1.0) * 0.5);
-
-      windVel.x += turbX;
-      windVel.y += turbY + updraft;
-
-      newPos += windVel / resolution * 2.;
-
-      float terminalVelocity = fallSpeed * newDensity * sqrt(totalMass / surfaceArea);
-      float gustEffect = sin(iterNum * 0.02 + dropPosition.x * 5.0) * 0.00004;
-      newPos.y -= terminalVelocity + gustEffect;
-
-      newPos.x = mod(newPos.x + 1., 2.) - 1.;
+      newPos.x = mod(newPos.x + 1., 2.) - 1.; // wrap horizontal position around map edges
 
       feedback[MASS] = totalMass;
 

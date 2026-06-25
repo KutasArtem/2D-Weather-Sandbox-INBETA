@@ -1,4 +1,3 @@
-
 /*
 This program is free software: you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
@@ -28,7 +27,7 @@ function updateSetupSliders()
   document.getElementById('simHeightShow').value = simHeight + ' m';
 }
 
-var FPS = 60.0;
+var FPS = 80.0;
 
 
 function mixGeneric(a, b, t, {clamp = false} = {})
@@ -382,9 +381,10 @@ const guiControls_default = {
   month : 6.65, // Northern hemisphere summer solstice
   sunAngle : 9.9,
   dayNightCycle : true,
+  daySpeedMultiplier : 1,  // 1x, 2x, or 5x day speed
   accelerateNight : true,
-  greenhouseGases : 0.001,
-  waterGreenHouseEffect : 0.0015,
+  greenhouseGases : 0.0010,
+  waterGreenHouseEffect : 0.0023,
   IR_rate : 1.0,
   tool : 'TOOL_NONE',
   brushSize : 20,
@@ -396,7 +396,7 @@ const guiControls_default = {
   enablePrecipitation : true,
   showDrops : false,
   paused : false,
-  IterPerFrame : 5,
+  IterPerFrame : 10,
   auto_IterPerFrame : true,
   sound : true,
   dryLapseRate : 10.0,     // Real: 9.8 degrees / km
@@ -405,7 +405,6 @@ const guiControls_default = {
   lengthUnit : 'LENGTH_UNIT_METRIC',
   tempUnit : 'TEMP_UNIT_C',
   windUnit : 'SPEED_UNIT_KMH',
-  viewPitch25D : 0.0,
 };
 
 var horizontalDisplayMult = 3.0; // 3.0 to cover srceen while zoomed out
@@ -1747,15 +1746,15 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
     {
       this.audioCtx = new window.AudioContext();
       this.jetEngineSound = new JetEngineSoundGenerator(this.audioCtx);
-      // load sound files asynchronously with error handling
-      this.loadThunderSounds('cc', 13).then(buffers => { this.thunderCCSounds = buffers; }).catch(e => console.warn('Failed to load CC thunder sounds:', e));
-      this.loadThunderSounds('cg', 13).then(buffers => { this.thunderCGSounds = buffers; }).catch(e => console.warn('Failed to load CG thunder sounds:', e));
+      // load sound files asynchronously
+      this.loadThunderSounds('cc', 13).then(buffers => { this.thunderCCSounds = buffers; });
+      this.loadThunderSounds('cg', 13).then(buffers => { this.thunderCGSounds = buffers; });
 
-      this.loadSound('urban.m4a').then(buffer => { this.urban_sound = this.playLoop(buffer, 0.0); }).catch(e => console.warn('Failed to load urban sound:', e));
-      this.loadSound('forest.mp3').then(buffer => { this.forest_sound = this.playLoop(buffer, 0.0); }).catch(e => console.warn('Failed to load forest sound:', e));
-      this.loadSound('beach.mp3').then(buffer => { this.beach_sound = this.playLoop(buffer, 0.0); }).catch(e => console.warn('Failed to load beach sound:', e));
-      this.loadSound('rain.m4a').then(buffer => { this.rain_sound = this.playLoop(buffer, 0.0); }).catch(e => console.warn('Failed to load rain sound:', e));
-      this.loadSound('wind.m4a').then(buffer => { this.wind_sound = this.playLoop(buffer, 0.0); }).catch(e => console.warn('Failed to load wind sound:', e));
+      this.loadSound('urban.m4a').then(buffer => { this.urban_sound = this.playLoop(buffer, 0.0); });
+      this.loadSound('forest.mp3').then(buffer => { this.forest_sound = this.playLoop(buffer, 0.0); });
+      this.loadSound('beach.mp3').then(buffer => { this.beach_sound = this.playLoop(buffer, 0.0); });
+      this.loadSound('rain.m4a').then(buffer => { this.rain_sound = this.playLoop(buffer, 0.0); });
+      this.loadSound('wind.m4a').then(buffer => { this.wind_sound = this.playLoop(buffer, 0.0); });
     }
 
     async loadSound(url)
@@ -3408,45 +3407,45 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
   function setGuiUniforms()
   { // set all uniforms to new values
     gl.useProgram(boundaryProgram);
-    gl.uniform1f(uniformLocations.boundary_vorticity, guiControls.vorticity);
-    gl.uniform1f(uniformLocations.boundary_landEvaporation, guiControls.landEvaporation);
-    gl.uniform1f(uniformLocations.boundary_waterEvaporation, guiControls.waterEvaporation);
-    gl.uniform1f(uniformLocations.boundary_dynamicWaterTemp, guiControls.dynamicWaterTemperature ? 1.0 : 0.0);
-    gl.uniform1f(uniformLocations.boundary_evapHeat, guiControls.evapHeat);
-    gl.uniform1f(uniformLocations.boundary_waterWeight, guiControls.waterWeight);
+    gl.uniform1f(gl.getUniformLocation(boundaryProgram, 'vorticity'), guiControls.vorticity);
+    gl.uniform1f(gl.getUniformLocation(boundaryProgram, 'landEvaporation'), guiControls.landEvaporation);
+    gl.uniform1f(gl.getUniformLocation(boundaryProgram, 'waterEvaporation'), guiControls.waterEvaporation);
+    gl.uniform1f(gl.getUniformLocation(boundaryProgram, 'dynamicWaterTemperature'), guiControls.dynamicWaterTemperature ? 1.0 : 0.0);
+    gl.uniform1f(gl.getUniformLocation(boundaryProgram, 'evapHeat'), guiControls.evapHeat);
+    gl.uniform1f(gl.getUniformLocation(boundaryProgram, 'waterWeight'), guiControls.waterWeight);
     gl.useProgram(velocityProgram);
-    gl.uniform1f(uniformLocations.velocity_dragMult, guiControls.dragMultiplier);
-    gl.uniform1f(uniformLocations.velocity_wind, guiControls.wind);
+    gl.uniform1f(gl.getUniformLocation(velocityProgram, 'dragMultiplier'), guiControls.dragMultiplier);
+    gl.uniform1f(gl.getUniformLocation(velocityProgram, 'wind'), guiControls.wind);
     gl.useProgram(lightingProgram);
-    gl.uniform1f(uniformLocations.lighting_waterTemp, CtoK(guiControls.waterTemperature));
-    gl.uniform1f(uniformLocations.lighting_greenhouse, guiControls.greenhouseGases);
-    gl.uniform1f(uniformLocations.lighting_waterGreenhouse, guiControls.waterGreenHouseEffect);
-    gl.uniform1f(uniformLocations.lighting_IR_rate, guiControls.IR_rate);
+    gl.uniform1f(gl.getUniformLocation(lightingProgram, 'waterTemperature'), CtoK(guiControls.waterTemperature));
+    gl.uniform1f(gl.getUniformLocation(lightingProgram, 'greenhouseGases'), guiControls.greenhouseGases);
+    gl.uniform1f(gl.getUniformLocation(lightingProgram, 'waterGreenHouseEffect'), guiControls.waterGreenHouseEffect);
+    gl.uniform1f(gl.getUniformLocation(lightingProgram, 'IR_rate'), guiControls.IR_rate);
     gl.useProgram(advectionProgram);
-    gl.uniform1f(uniformLocations.advection_evapHeat, guiControls.evapHeat);
-    gl.uniform1f(uniformLocations.advection_meltingHeat, guiControls.meltingHeat);
-    gl.uniform1f(uniformLocations.advection_condRate, guiControls.condensationRate);
-    gl.uniform1f(uniformLocations.advection_globalDrying, guiControls.globalDrying);
-    gl.uniform1f(uniformLocations.advection_globalHeating, guiControls.globalHeating);
-    gl.uniform1f(uniformLocations.advection_soundingForcing, guiControls.soundingForcing);
-    gl.uniform1f(uniformLocations.advection_globalStartAlt, guiControls.globalEffectsStartAlt / guiControls.simHeight);
-    gl.uniform1f(uniformLocations.advection_globalEndAlt, guiControls.globalEffectsEndAlt / guiControls.simHeight);
-    gl.uniform1f(uniformLocations.advection_waterTemp, CtoK(guiControls.waterTemperature));
+    gl.uniform1f(gl.getUniformLocation(advectionProgram, 'evapHeat'), guiControls.evapHeat);
+    gl.uniform1f(gl.getUniformLocation(advectionProgram, 'meltingHeat'), guiControls.meltingHeat);
+    gl.uniform1f(gl.getUniformLocation(advectionProgram, 'condensationRate'), guiControls.condensationRate);
+    gl.uniform1f(gl.getUniformLocation(advectionProgram, 'globalDrying'), guiControls.globalDrying);
+    gl.uniform1f(gl.getUniformLocation(advectionProgram, 'globalHeating'), guiControls.globalHeating);
+    gl.uniform1f(gl.getUniformLocation(advectionProgram, 'soundingForcing'), guiControls.soundingForcing);
+    gl.uniform1f(gl.getUniformLocation(advectionProgram, 'globalEffectsStartAlt'), guiControls.globalEffectsStartAlt / guiControls.simHeight);
+    gl.uniform1f(gl.getUniformLocation(advectionProgram, 'globalEffectsEndAlt'), guiControls.globalEffectsEndAlt / guiControls.simHeight);
+    gl.uniform1f(gl.getUniformLocation(advectionProgram, 'waterTemperature'), CtoK(guiControls.waterTemperature));
     gl.useProgram(precipitationProgram);
-    gl.uniform1f(uniformLocations.precip_evapHeat, guiControls.evapHeat);
-    gl.uniform1f(uniformLocations.precip_meltingHeat, guiControls.meltingHeat);
-    gl.uniform1f(uniformLocations.precip_aboveZeroThresh, guiControls.aboveZeroThreshold);
-    gl.uniform1f(uniformLocations.precip_subZeroThresh, guiControls.subZeroThreshold);
-    gl.uniform1f(uniformLocations.precip_spawnChance, guiControls.spawnChance);
-    gl.uniform1f(uniformLocations.precip_snowDensity, guiControls.snowDensity);
-    gl.uniform1f(uniformLocations.precip_fallSpeed, guiControls.fallSpeed);
-    gl.uniform1f(uniformLocations.precip_growthRate0C, guiControls.growthRate0C);
-    gl.uniform1f(uniformLocations.precip_growthRate_30C, guiControls.growthRate_30C);
-    gl.uniform1f(uniformLocations.precip_freezingRate, guiControls.freezingRate);
-    gl.uniform1f(uniformLocations.precip_meltingRate, guiControls.meltingRate);
-    gl.uniform1f(uniformLocations.precip_evapRate, guiControls.evapRate);
+    gl.uniform1f(gl.getUniformLocation(precipitationProgram, 'evapHeat'), guiControls.evapHeat);
+    gl.uniform1f(gl.getUniformLocation(precipitationProgram, 'meltingHeat'), guiControls.meltingHeat);
+    gl.uniform1f(gl.getUniformLocation(precipitationProgram, 'aboveZeroThreshold'), guiControls.aboveZeroThreshold);
+    gl.uniform1f(gl.getUniformLocation(precipitationProgram, 'subZeroThreshold'), guiControls.subZeroThreshold);
+    gl.uniform1f(gl.getUniformLocation(precipitationProgram, 'spawnChanceMult'), guiControls.spawnChance);
+    gl.uniform1f(gl.getUniformLocation(precipitationProgram, 'snowDensity'), guiControls.snowDensity);
+    gl.uniform1f(gl.getUniformLocation(precipitationProgram, 'fallSpeed'), guiControls.fallSpeed);
+    gl.uniform1f(gl.getUniformLocation(precipitationProgram, 'growthRate0C'), guiControls.growthRate0C);
+    gl.uniform1f(gl.getUniformLocation(precipitationProgram, 'growthRate_30C'), guiControls.growthRate_30C);
+    gl.uniform1f(gl.getUniformLocation(precipitationProgram, 'freezingRate'), guiControls.freezingRate);
+    gl.uniform1f(gl.getUniformLocation(precipitationProgram, 'meltingRate'), guiControls.meltingRate);
+    gl.uniform1f(gl.getUniformLocation(precipitationProgram, 'evapRate'), guiControls.evapRate);
     gl.useProgram(postProcessingProgram);
-    gl.uniform1f(uniformLocations.post_exposure, guiControls.exposure);
+    gl.uniform1f(gl.getUniformLocation(postProcessingProgram, 'exposure'), guiControls.exposure);
   }
 
   function setupDatGui(strGuiControls)
@@ -3594,6 +3593,8 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
 
     radiation_folder.add(guiControls, 'accelerateNight').name('Accelerate Night').listen();
 
+    radiation_folder.add(guiControls, 'daySpeedMultiplier', { '1x': 1, '2x': 2, '5x': 5 }).name('Day Speed').listen();
+
     radiation_folder.add(guiControls, 'latitude', -90.0, 90.0, 0.1).onChange(function() { updateSunlight(); }).name('Latitude').listen();
 
     radiation_folder.add(guiControls, 'month', 1.0, 12.99, 0.01).onChange(onUpdateMonthSlider).name('Month').listen();
@@ -3691,9 +3692,6 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
       .name('Water Weight');
 
     var precipitation_folder = datGui.addFolder('Precipitation');
-
-    precipitation_folder.add(guiControls, 'viewPitch25D', 0.0, 1.0, 0.01)
-      .name('2.5D Pitch');
 
     precipitation_folder.add(guiControls, 'aboveZeroThreshold', 0.1, 2.0, 0.001)
       .onChange(function() {
@@ -5207,7 +5205,7 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
   const colorScalesTexture = gl.createTexture();
 
   const lightningTextures = [];
-  const numLightningTextures = 20;
+  const numLightningTextures = 10;
 
 
   frameBuff_0 = gl.createFramebuffer(); // global for weather stations
@@ -5439,165 +5437,29 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
   }
 
 
-  function generateLightningTexture(i, imgBitmap)
+  function generateLightningTexture(i, imgData)
   {
     lightningTextures[i] = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, lightningTextures[i]);
-    // Worker передаёт ImageBitmap, поэтому используем форму texImage2D с image-source
-    // (без width/height/type — WebGL сам возьмёт из ImageBitmap)
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, imgBitmap);
-    gl.generateMipmap(gl.TEXTURE_2D);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, imgData.width, imgData.height, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, imgData);
+    // gl.generateMipmap(gl.TEXTURE_2D);                                                // optional
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); // LINEAR_MIPMAP_LINEAR
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   }
 
 
-  const lightningWorkers = [];
-
   for (let i = 0; i < numLightningTextures; i++) {
     const lightningGeneratorWorker = new Worker('./lightningGenerator.js');
-    lightningGeneratorWorker.onmessage = (event) => {
-      if (event && event.data) {
-        generateLightningTexture(i, event.data);
-      }
+    lightningGeneratorWorker.onmessage = (imgElement) => {
+      // downloadImageData(imgElement.data); // for debugging
+
+      generateLightningTexture(i, imgElement.data);
     };
-    lightningGeneratorWorker.onerror = (err) => {
-      console.error('Lightning worker error:', err.message || err);
-    };
-    lightningWorkers.push(lightningGeneratorWorker);
 
-    lightningGeneratorWorker.postMessage({width : 2500, height : 5000});
+    lightningGeneratorWorker.postMessage({width : 2500, height : 5000}); // 10000 5000
   }
-
-  // Store workers for potential cleanup
-  window.lightningWorkers = lightningWorkers;
-
-  // Uniform location cache for performance
-  const uniformCache = new Map();
-  function getUniformLoc(program, name) {
-    const key = program + ':' + name;
-    if (!uniformCache.has(key)) {
-      uniformCache.set(key, gl.getUniformLocation(program, name));
-    }
-    return uniformCache.get(key);
-  }
-
-  // Preload all uniform locations used in the main loop
-  const uniformLocations = {
-    // boundaryProgram
-    boundary_iterNum: null,
-    boundary_vorticity: null,
-    boundary_allowCaves: null,
-    boundary_landEvaporation: null,
-    boundary_waterEvaporation: null,
-    boundary_dynamicWaterTemp: null,
-    boundary_evapHeat: null,
-    boundary_waterWeight: null,
-    boundary_waterTemp: null,
-    boundary_dryLapse: null,
-    boundary_sunAngle: null,
-    // velocityProgram
-    velocity_dragMult: null,
-    velocity_wind: null,
-    // advectionProgram
-    advection_evapHeat: null,
-    advection_meltingHeat: null,
-    advection_condRate: null,
-    advection_globalDrying: null,
-    advection_globalHeating: null,
-    advection_soundingForcing: null,
-    advection_globalStartAlt: null,
-    advection_globalEndAlt: null,
-    advection_waterTemp: null,
-    advection_userInputType: null,
-    advection_userInputValues: null,
-    advection_userInputMove: null,
-    advection_wrapHoriz: null,
-    advection_airplaneValues: null,
-    // lightingProgram
-    lighting_waterTemp: null,
-    lighting_greenhouse: null,
-    lighting_waterGreenhouse: null,
-    lighting_IR_rate: null,
-    // precipitationProgram
-    precip_evapHeat: null,
-    precip_meltingHeat: null,
-    precip_aboveZeroThresh: null,
-    precip_subZeroThresh: null,
-    precip_spawnChance: null,
-    precip_snowDensity: null,
-    precip_fallSpeed: null,
-    precip_growthRate0C: null,
-    precip_growthRate_30C: null,
-    precip_freezingRate: null,
-    precip_meltingRate: null,
-    precip_evapRate: null,
-    precip_inactiveDroplets: null,
-    precip_iterNum: null,
-    // postProcessingProgram
-    post_exposure: null,
-    // lightningLocationProgram
-    lightning_iterNum: null,
-    // realisticDisplayProgram
-    real_aspectRatios: null,
-    real_view: null,
-    real_cursor: null,
-    real_Xmult: null,
-    real_iterNum: null,
-    real_pitch25D: null,
-    real_displayVectorField: null,
-    real_sunAngle: null,
-    real_minShadowLight: null,
-    // skyBackgroundDisplayProgram
-    sky_aspectRatios: null,
-    sky_view: null,
-    sky_Xmult: null,
-    sky_iterNum: null,
-    sky_minShadowLight: null,
-    sky_planeDirectionAndGearPos: null,
-    sky_planePos: null,
-    // temperatureDisplayProgram
-    temp_aspectRatios: null,
-    temp_view: null,
-    temp_cursor: null,
-    temp_Xmult: null,
-    temp_displayVectorField: null,
-    // humidityDisplayProgram
-    humd_aspectRatios: null,
-    humd_view: null,
-    humd_cursor: null,
-    humd_Xmult: null,
-    // universalDisplayProgram
-    univ_aspectRatios: null,
-    univ_view: null,
-    univ_cursor: null,
-    univ_Xmult: null,
-    univ_quantityIndex: null,
-    univ_dispMultiplier: null,
-    // airQualityDisplayProgram
-    aq_aspectRatios: null,
-    aq_view: null,
-    aq_cursor: null,
-    aq_Xmult: null,
-    // IRtempDisplayProgram
-    ir_aspectRatios: null,
-    ir_view: null,
-    ir_cursor: null,
-    ir_upOrDown: null,
-    ir_Xmult: null,
-    // precipDisplayProgram
-    precipDisp_aspectRatios: null,
-    precipDisp_view: null,
-    // postProcessingProgram bloom
-    bloom_texelSize: null,
-    bloom_bloomTexture: null,
-    // isolateBrightPartsProgram
-    isolate_hdrTex: null,
-  };
 
   await loadingBar.set(90, 'Setting up FBO`s');
 
@@ -5817,116 +5679,6 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
   gl.uniform2f(gl.getUniformLocation(lightningLocationProgram, 'texelSize'), texelSizeX, texelSizeY);
 
 
-  // Initialize uniform location cache
-  uniformLocations.boundary_iterNum = gl.getUniformLocation(boundaryProgram, 'iterNum');
-  uniformLocations.boundary_vorticity = gl.getUniformLocation(boundaryProgram, 'vorticity');
-  uniformLocations.boundary_allowCaves = gl.getUniformLocation(boundaryProgram, 'allowCaves');
-  uniformLocations.boundary_landEvaporation = gl.getUniformLocation(boundaryProgram, 'landEvaporation');
-  uniformLocations.boundary_waterEvaporation = gl.getUniformLocation(boundaryProgram, 'waterEvaporation');
-  uniformLocations.boundary_dynamicWaterTemp = gl.getUniformLocation(boundaryProgram, 'dynamicWaterTemperature');
-  uniformLocations.boundary_evapHeat = gl.getUniformLocation(boundaryProgram, 'evapHeat');
-  uniformLocations.boundary_waterWeight = gl.getUniformLocation(boundaryProgram, 'waterWeight');
-  uniformLocations.boundary_waterTemp = gl.getUniformLocation(boundaryProgram, 'waterTemperature');
-  uniformLocations.boundary_dryLapse = gl.getUniformLocation(boundaryProgram, 'dryLapse');
-  uniformLocations.boundary_sunAngle = gl.getUniformLocation(boundaryProgram, 'sunAngle');
-
-  uniformLocations.velocity_dragMult = gl.getUniformLocation(velocityProgram, 'dragMultiplier');
-  uniformLocations.velocity_wind = gl.getUniformLocation(velocityProgram, 'wind');
-
-  uniformLocations.advection_evapHeat = gl.getUniformLocation(advectionProgram, 'evapHeat');
-  uniformLocations.advection_meltingHeat = gl.getUniformLocation(advectionProgram, 'meltingHeat');
-  uniformLocations.advection_condRate = gl.getUniformLocation(advectionProgram, 'condensationRate');
-  uniformLocations.advection_globalDrying = gl.getUniformLocation(advectionProgram, 'globalDrying');
-  uniformLocations.advection_globalHeating = gl.getUniformLocation(advectionProgram, 'globalHeating');
-  uniformLocations.advection_soundingForcing = gl.getUniformLocation(advectionProgram, 'soundingForcing');
-  uniformLocations.advection_globalStartAlt = gl.getUniformLocation(advectionProgram, 'globalEffectsStartAlt');
-  uniformLocations.advection_globalEndAlt = gl.getUniformLocation(advectionProgram, 'globalEffectsEndAlt');
-  uniformLocations.advection_waterTemp = gl.getUniformLocation(advectionProgram, 'waterTemperature');
-  uniformLocations.advection_userInputType = gl.getUniformLocation(advectionProgram, 'userInputType');
-  uniformLocations.advection_userInputValues = gl.getUniformLocation(advectionProgram, 'userInputValues');
-  uniformLocations.advection_userInputMove = gl.getUniformLocation(advectionProgram, 'userInputMove');
-  uniformLocations.advection_wrapHoriz = gl.getUniformLocation(advectionProgram, 'wrapHorizontally');
-  uniformLocations.advection_airplaneValues = gl.getUniformLocation(advectionProgram, 'airplaneValues');
-
-  uniformLocations.lighting_waterTemp = gl.getUniformLocation(lightingProgram, 'waterTemperature');
-  uniformLocations.lighting_greenhouse = gl.getUniformLocation(lightingProgram, 'greenhouseGases');
-  uniformLocations.lighting_waterGreenhouse = gl.getUniformLocation(lightingProgram, 'waterGreenHouseEffect');
-  uniformLocations.lighting_IR_rate = gl.getUniformLocation(lightingProgram, 'IR_rate');
-
-  uniformLocations.precip_evapHeat = gl.getUniformLocation(precipitationProgram, 'evapHeat');
-  uniformLocations.precip_meltingHeat = gl.getUniformLocation(precipitationProgram, 'meltingHeat');
-  uniformLocations.precip_aboveZeroThresh = gl.getUniformLocation(precipitationProgram, 'aboveZeroThreshold');
-  uniformLocations.precip_subZeroThresh = gl.getUniformLocation(precipitationProgram, 'subZeroThreshold');
-  uniformLocations.precip_spawnChance = gl.getUniformLocation(precipitationProgram, 'spawnChanceMult');
-  uniformLocations.precip_snowDensity = gl.getUniformLocation(precipitationProgram, 'snowDensity');
-  uniformLocations.precip_fallSpeed = gl.getUniformLocation(precipitationProgram, 'fallSpeed');
-  uniformLocations.precip_growthRate0C = gl.getUniformLocation(precipitationProgram, 'growthRate0C');
-  uniformLocations.precip_growthRate_30C = gl.getUniformLocation(precipitationProgram, 'growthRate_30C');
-  uniformLocations.precip_freezingRate = gl.getUniformLocation(precipitationProgram, 'freezingRate');
-  uniformLocations.precip_meltingRate = gl.getUniformLocation(precipitationProgram, 'meltingRate');
-  uniformLocations.precip_evapRate = gl.getUniformLocation(precipitationProgram, 'evapRate');
-  uniformLocations.precip_inactiveDroplets = gl.getUniformLocation(precipitationProgram, 'inactiveDroplets');
-  uniformLocations.precip_iterNum = gl.getUniformLocation(precipitationProgram, 'iterNum');
-
-  uniformLocations.post_exposure = gl.getUniformLocation(postProcessingProgram, 'exposure');
-
-  uniformLocations.lightning_iterNum = gl.getUniformLocation(lightningLocationProgram, 'iterNum');
-
-  uniformLocations.real_aspectRatios = gl.getUniformLocation(realisticDisplayProgram, 'aspectRatios');
-  uniformLocations.real_view = gl.getUniformLocation(realisticDisplayProgram, 'view');
-  uniformLocations.real_cursor = gl.getUniformLocation(realisticDisplayProgram, 'cursor');
-  uniformLocations.real_Xmult = gl.getUniformLocation(realisticDisplayProgram, 'Xmult');
-  uniformLocations.real_iterNum = gl.getUniformLocation(realisticDisplayProgram, 'iterNum');
-  uniformLocations.real_pitch25D = gl.getUniformLocation(realisticDisplayProgram, 'pitch25D');
-  uniformLocations.real_displayVectorField = gl.getUniformLocation(realisticDisplayProgram, 'displayVectorField');
-  uniformLocations.real_sunAngle = gl.getUniformLocation(realisticDisplayProgram, 'sunAngle');
-  uniformLocations.real_minShadowLight = gl.getUniformLocation(realisticDisplayProgram, 'minShadowLight');
-
-  uniformLocations.sky_aspectRatios = gl.getUniformLocation(skyBackgroundDisplayProgram, 'aspectRatios');
-  uniformLocations.sky_view = gl.getUniformLocation(skyBackgroundDisplayProgram, 'view');
-  uniformLocations.sky_Xmult = gl.getUniformLocation(skyBackgroundDisplayProgram, 'Xmult');
-  uniformLocations.sky_iterNum = gl.getUniformLocation(skyBackgroundDisplayProgram, 'iterNum');
-  uniformLocations.sky_minShadowLight = gl.getUniformLocation(skyBackgroundDisplayProgram, 'minShadowLight');
-  uniformLocations.sky_planeDirectionAndGearPos = gl.getUniformLocation(skyBackgroundDisplayProgram, 'planeDirectionAndGearPos');
-  uniformLocations.sky_planePos = gl.getUniformLocation(skyBackgroundDisplayProgram, 'planePos');
-
-  uniformLocations.temp_aspectRatios = gl.getUniformLocation(temperatureDisplayProgram, 'aspectRatios');
-  uniformLocations.temp_view = gl.getUniformLocation(temperatureDisplayProgram, 'view');
-  uniformLocations.temp_cursor = gl.getUniformLocation(temperatureDisplayProgram, 'cursor');
-  uniformLocations.temp_Xmult = gl.getUniformLocation(temperatureDisplayProgram, 'Xmult');
-  uniformLocations.temp_displayVectorField = gl.getUniformLocation(temperatureDisplayProgram, 'displayVectorField');
-
-  uniformLocations.humd_aspectRatios = gl.getUniformLocation(humidityDisplayProgram, 'aspectRatios');
-  uniformLocations.humd_view = gl.getUniformLocation(humidityDisplayProgram, 'view');
-  uniformLocations.humd_cursor = gl.getUniformLocation(humidityDisplayProgram, 'cursor');
-  uniformLocations.humd_Xmult = gl.getUniformLocation(humidityDisplayProgram, 'Xmult');
-
-  uniformLocations.univ_aspectRatios = gl.getUniformLocation(universalDisplayProgram, 'aspectRatios');
-  uniformLocations.univ_view = gl.getUniformLocation(universalDisplayProgram, 'view');
-  uniformLocations.univ_cursor = gl.getUniformLocation(universalDisplayProgram, 'cursor');
-  uniformLocations.univ_Xmult = gl.getUniformLocation(universalDisplayProgram, 'Xmult');
-  uniformLocations.univ_quantityIndex = gl.getUniformLocation(universalDisplayProgram, 'quantityIndex');
-  uniformLocations.univ_dispMultiplier = gl.getUniformLocation(universalDisplayProgram, 'dispMultiplier');
-
-  uniformLocations.aq_aspectRatios = gl.getUniformLocation(airQualityDisplayProgram, 'aspectRatios');
-  uniformLocations.aq_view = gl.getUniformLocation(airQualityDisplayProgram, 'view');
-  uniformLocations.aq_cursor = gl.getUniformLocation(airQualityDisplayProgram, 'cursor');
-  uniformLocations.aq_Xmult = gl.getUniformLocation(airQualityDisplayProgram, 'Xmult');
-
-  uniformLocations.ir_aspectRatios = gl.getUniformLocation(IRtempDisplayProgram, 'aspectRatios');
-  uniformLocations.ir_view = gl.getUniformLocation(IRtempDisplayProgram, 'view');
-  uniformLocations.ir_cursor = gl.getUniformLocation(IRtempDisplayProgram, 'cursor');
-  uniformLocations.ir_upOrDown = gl.getUniformLocation(IRtempDisplayProgram, 'upOrDown');
-  uniformLocations.ir_Xmult = gl.getUniformLocation(IRtempDisplayProgram, 'Xmult');
-
-  uniformLocations.precipDisp_aspectRatios = gl.getUniformLocation(precipDisplayProgram, 'aspectRatios');
-  uniformLocations.precipDisp_view = gl.getUniformLocation(precipDisplayProgram, 'view');
-
-  uniformLocations.bloom_texelSize = gl.getUniformLocation(bloomBlurProgram, 'texelSize');
-  uniformLocations.bloom_bloomTexture = gl.getUniformLocation(bloomBlurProgram, 'bloomTexture');
-  uniformLocations.isolate_hdrTex = gl.getUniformLocation(isolateBrightPartsProgram, 'hdrTex');
-
-
   // console.time('Set uniforms');
   setGuiUniforms(); // all uniforms changed by gui
   // console.timeEnd('Set uniforms')
@@ -6105,13 +5857,13 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
 
       if (!guiControls.paused) { // Simulation part
 
-        let nightAccelerationActive = !airplaneMode && guiControls.dayNightCycle && guiControls.accelerateNight && guiControls.sunAngle < 0.;
+        let nightAccelerationActive = !airplaneMode && guiControls.dayNightCycle && guiControls.accelerateNight && (guiControls.sunAngle < 0. || guiControls.sunAngle > 180.);
 
         if (guiControls.dayNightCycle) {
           if (airplaneMode) {
             updateSunlight(1.0 / 3600.0 / 60);                                                                    // increase solar time at real speed: 1/60 seconds per frame
           } else {
-            updateSunlight(timePerIteration * guiControls.IterPerFrame * (nightAccelerationActive ? 10.0 : 1.0)); // increase solar time
+            updateSunlight(timePerIteration * guiControls.IterPerFrame * (nightAccelerationActive ? 10.0 : 1.0) * guiControls.daySpeedMultiplier); // increase solar time
           }
         }
 
@@ -6493,7 +6245,6 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
       gl.uniform4f(gl.getUniformLocation(realisticDisplayProgram, 'cursor'), mouseXinSim, mouseYinSim, guiControls.brushSize * 0.5, cursorType);
       gl.uniform1f(gl.getUniformLocation(realisticDisplayProgram, 'Xmult'), horizontalDisplayMult);
       gl.uniform1f(gl.getUniformLocation(realisticDisplayProgram, 'iterNum'), iterNum);
-      gl.uniform1f(gl.getUniformLocation(realisticDisplayProgram, 'pitch25D'), guiControls.viewPitch25D);
 
       // Don't display vectors when zoomed out because you would just see noise
       if (cam.curZoom / sim_res_x > 0.003) {
@@ -6503,7 +6254,7 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
       }
 
 
-      let lightningTexNum = Math.floor(iterNum / 250) % numLightningTextures;
+      let lightningTexNum = Math.floor(iterNum / 400) % numLightningTextures;
       // console.log(lightningTexNum)
 
       gl.activeTexture(gl.TEXTURE7);
@@ -6958,17 +6709,20 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
   async function loadSourceFile(fileName)
   {
     try {
-      const response = await fetch(fileName);
-      if (!response.ok) {
-        if (response.status === 404)
-          throw 'File not found: ' + fileName;
-        throw 'File loading error: ' + response.status;
-      }
-      return await response.text();
+      var request = new XMLHttpRequest();
+      request.open('GET', fileName, false);
+      request.send(null);
     } catch (error) {
       await loadingBar.showError('ERROR loading shader files! If you just opened index.html, try again using a local server!');
       throw error;
     }
+
+    if (request.status === 200)
+      return request.responseText;
+    else if (request.status === 404)
+      throw 'File not found: ' + fileName;
+    else
+      throw 'File loading error' + request.status;
   }
 
   async function loadShader(nameIn)
@@ -6989,29 +6743,6 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
     } else {
       throw 'Invalid shadertype: ' + extension;
     }
-
-    let filename = 'shaders/' + type + '/' + nameIn;
-
-    var shaderSource = await loadSourceFile(filename);
-
-    if (shaderSource.includes('#include "common.glsl"')) {
-      shaderSource = shaderSource.replace('#include "common.glsl"', commonSource);
-    }
-
-    if (shaderSource.includes('#include "commonDisplay.glsl"')) {
-      shaderSource = shaderSource.replace('#include "commonDisplay.glsl"', commonDisplaySource);
-    }
-
-    const shader = gl.createShader(shaderType);
-    gl.shaderSource(shader, shaderSource);
-    gl.compileShader(shader);
-
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      throw filename + ' COMPILATION ' + gl.getShaderInfoLog(shader);
-    }
-    await loadingBar.add(2, 'Loaded shader: ' + nameIn);
-    return shader;
-  }
 
     let filename = 'shaders/' + type + '/' + nameIn;
 
@@ -7056,7 +6787,7 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
 
         if (guiControls.auto_IterPerFrame && !airplaneMode) {
           const fpsTarget = 60;
-          const ratio = FPS / 60; if (ratio < 0.9) adjIterPerFrame((ratio - 1.0) * 10); else if (ratio < 1.0) adjIterPerFrame((ratio - 1.0) * 3); else if (FPS > 60) adjIterPerFrame(0.5);
+          adjIterPerFrame((FPS / fpsTarget - 1.0) * 5.0); // example: ((30 / 60)-1.0) = -0.5
 
           if (FPS == fpsTarget)
             adjIterPerFrame(1);

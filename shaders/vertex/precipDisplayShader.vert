@@ -12,7 +12,6 @@ out float density_out;
 uniform vec2 texelSize;
 uniform vec2 aspectRatios; // sim   canvas
 uniform vec3 view;         // Xpos  Ypos    Zoom
-uniform float iterNum;
 
 void main()
 {
@@ -27,17 +26,12 @@ void main()
 
   gl_Position = vec4(outpos, 0.0, 1.0);
 
-  float depthFactor = clamp((dropPosition.y + 1.0) * 0.5, 0.0, 1.0);
-  float size = 3.0 + depthFactor * 5.0;
+  float size = 4.0; // 4.0
 
-  if (mass[1] > 0.0 && density < 1.0) {
-    size = 2.0 + depthFactor * 3.5;
-  } else if (mass[1] > 0.0 && density >= 1.0) {
-    size = 4.0 + depthFactor * 3.0;
-  }
+  // if(mass[1] > 0. && density == 1.0) // hail
+  //   size = 0.6;
 
-  float zoomFactor = view[2] / aspectRatios[0];
-  gl_PointSize = size * zoomFactor;
+  gl_PointSize = view[2] * size / aspectRatios[0];
 
   position_out = dropPosition;
   mass_out = mass;

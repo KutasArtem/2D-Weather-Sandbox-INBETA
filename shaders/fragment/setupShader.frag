@@ -26,11 +26,18 @@ layout(location = 2) out ivec4 wall;
 
 float rand(float n) { return fract(sin(n) * 43758.5453123); }
 
+// Hermite interpolation for smoother noise
+float hermiteInterp(float t) {
+  return t * t * (3.0 - 2.0 * t);
+}
+
+// Improved Perlin-like noise with smoother interpolation
 float noise(float p)
 {
   float fl = floor(p);
   float fc = fract(p);
-  return mix(rand(fl), rand(fl + 1.), fc) - 0.5;
+  float u = hermiteInterp(fc);
+  return mix(rand(fl), rand(fl + 1.), u) - 0.5;
 }
 
 void main()
@@ -52,14 +59,23 @@ void main()
     height = 0.005;
 
   } else { // generate hills / mountains
-    float var = fragCoord.x * 0.001;
-
-    for (float i = 2.0; i < 1000.0; i *= 1.5) { // add multiple frequencies of noise together
-      height += noise(var * i + rand(seed + i) * 10.) * 0.5 / i;
+    float var = fragCoord.x * 0.0008;
+    
+    // Smooth terrain with Perlin-like noise
+    float amplitude = 1.0;
+    float frequency = 0.5;  // Start with lower frequency for smoother base
+    float maxValue = 0.0;
+    
+    for (float i = 0.0; i < 6.0; i++) { // Fewer octaves for less detail complexity
+      height += noise(var * frequency + rand(seed + i * 10.0) * 100.0) * amplitude;
+      maxValue += amplitude;
+      amplitude *= 0.48; // Lower persistence = smoother transitions
+      frequency *= 1.75; // Lower lacunarity = gentler frequency transitions
     }
-
-    height *= heightMult;
-    height_m = height * simHeight; // sim height
+    
+    height /= maxValue; // Normalize
+    height *= heightMult * 0.5;  // Reduce height by half for gentler slopes
+    height_m = height * simHeight;
   }
 
   if (texCoord.y < texelSize.y || texCoord.y < height) {                                                      // set to wall
@@ -81,21 +97,12 @@ void main()
 
     float realTemp = potentialToRealT(base[TEMPERATURE]);
 
-    // Более реалистичный и влажный начальный профиль: депрессия точки росы
-    // увеличивается с высотой, но не превышает 30°C. Это даёт насыщение у
-    // поверхности и заметную облачность при первой же конвекции.
-    float dewPointDepression = 2.0 + texCoord.y * 28.0; // 2°C у земли, до ~30°C в верхней тропосфере
-    water[TOTAL] = maxWater(realTemp - dewPointDepression);
+    if (texCoord.y < 0.20) // set dew point
+      water[TOTAL] = maxWater(realTemp - 2.0);
+    else
+      water[TOTAL] = maxWater(realTemp - 20.0);
 
     water[CLOUD] = max(water[TOTAL] - maxWater(realTemp), 0.0); // calculate cloud water
-
-    // Небольшое начальное возмущение температуры в нижних слоях, чтобы
-    // запустить конвекцию даже при однородном рельефе
-    if (texCoord.y < 0.35 && texCoord.y > 0.02) {
-      base[TEMPERATURE] += (noise(fragCoord.x * 0.02 + seed * 7.0) +
-                            noise(fragCoord.y * 0.05 + seed * 3.0)) *
-                           0.6;
-    }
   }
   wall[VERT_DISTANCE] = 100;                                    // preset height above ground to prevent water being deleted in boundaryshader ln 250*`
 }
