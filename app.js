@@ -342,9 +342,9 @@ const mToFt = 3.28084;
 const saveFileVersionID = 263574036; // Uint32 id to check if save file is compatible
 
 const guiControls_default = {
-  vorticity : 0.005,
-  dragMultiplier : 0.001, // 0.01
-  wind : 0.0,
+  vorticity : 0.008,
+  dragMultiplier : 10.01, // 0.01
+  wind : 10.0,
   globalEffectsStartAlt : 0,
   globalEffectsEndAlt : 10000,
   globalDrying : 0.000000, // 0.000010
@@ -353,10 +353,10 @@ const guiControls_default = {
   sunIntensity : 1.0,
   waterTemperature : 25.0, // °C
   dynamicWaterTemperature : true,
-  landEvaporation : 0.00005,
-  waterEvaporation : 0.0001,
-  evapHeat : 2.90,          //  Real: 2260 J/g
-  meltingHeat : 0.43,       //  Real:  334 J/g
+  landEvaporation : 1.00005,
+  waterEvaporation : 2.0001,
+  evapHeat : 2.60,          //  Real: 2260 J/g
+  meltingHeat : 0.334,       //  Real:  334 J/g
   condensationRate : 0.0050,
   waterWeight : 0.25,       // 0.50
   inactiveDroplets : 0,
@@ -383,7 +383,7 @@ const guiControls_default = {
   accelerateNight : true,
   greenhouseGases : 0.0010,
   waterGreenHouseEffect : 0.0023,
-  IR_rate : 1.0,
+  IR_rate : 0.0001,
   tool : 'TOOL_NONE',
   brushSize : 20,
   wholeWidth : false,
@@ -395,7 +395,7 @@ const guiControls_default = {
   showDrops : false,
   paused : false,
   allowBlur : false,
-  IterPerFrame : 10,
+  IterPerFrame : 5,
   auto_IterPerFrame : true,
   sound : true,
   dryLapseRate : 9.789,     // Real: 9.8 degrees / km
@@ -6828,3 +6828,7 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
   }
 } // end of mainscript
 
+//make tornado spawn physic
+
+
+const tornado = document.getElementById('')
