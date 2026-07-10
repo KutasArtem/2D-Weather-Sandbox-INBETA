@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8" />
-    <title>2D Weather Sandbox</title>
+    <title >2D Weather Sandbox</title>
     <script type="text/javascript" src="libraries/dat.gui.min.js"></script>
     <script type="text/javascript" src="libraries/pako.min.js"></script>
     <script type="text/javascript" src="libraries/chart.js"></script>
@@ -11,6 +11,8 @@
     <script type="text/javascript" src="app.js"></script>
     <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
     <style>
+
+       
         :root {
             --text-color: #ffffff;
             --accent-color: #4a90e2;
@@ -267,7 +269,7 @@
 <body id="body" onload="updateSetupSliders();">
     <nav class="main-nav">
         <div class="nav-title">
-            <h1>2D Weather Sandbox</h1>
+            <h1 style="color: white; backdrop-filter: brightness(9.9); border-radius: 10px; padding: 0.5rem; mix-blend-mode: difference;">2D Weather Sandbox</h1>
         </div>
         <div class="nav-icons">
             <a href="https://github.com/niels747/2D-Weather-Sandbox" target="_blank" rel="noopener noreferrer">
@@ -335,7 +337,7 @@
                         <input type="range" min="100" max="500" value="300" step="10" id="simResSelY" />
                         <output id="simResShowY"></output>
                     </td>
-                    <td><i id="simResYWarning" style="color:rgb(255, 61, 61); display: none;">Vertical resolutions
+                    <td><i id="simResYWarning" style="color:rgb(252, 52, 52); display: none;">Vertical resolutions
                             other
                             than 300 are not optimized and may be buggy!</i></td>
                 </tr>
@@ -345,7 +347,7 @@
                         <input type="range" min="5000" max="15000" value="12000" step="100" id="simHeightSel" />
                         <output id="simHeightShow"></output>
                     </td>
-                    <td><i id="simHeightWarning" style="color:rgb(255, 61, 61); display: none;">Sim heights other
+                    <td><i id="simHeightWarning" style="color:rgb(252, 42, 42); display: none;">Sim heights other
                             than
                             12000 m are not optimized and may be buggy!</i></td>
                 </tr>
@@ -405,7 +407,8 @@
             </ul>
         </div>
 
-        <div class="controls">
+        <div class="controls" style="color: white; mix-blend-mode: color-dodge;">
+            
             <h2>Controls</h2>
             <h3>Mouse</h3>
             <ul>
@@ -514,8 +517,15 @@
                     <td>Show / Hide GUI</td>
                 </tr>
                 <tr>
+                    <td>ALT</td>
+                    <td>Toggle Radar Display / <span style="color:red;">BETA <span style="color: rgb(255, 0, 98)">!</span></span></td>
+                </tr>
+                <tr>
                     <td>V</td>
-                    <td>Reset View</td>
+                    <td>
+                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQTtgQTe3zD181AiJ-5DLpnZpDDof3DcKL3XMODn1z2TQ&s=10" alt="V" style="width: 20px; height: 20px; vertical-align: middle; border-radius: 20%; background-color: #000; padding: 2px;">
+                        <text style="vertical-align: middle;">main view reset</text>
+                    </td>
                 </tr>
                 <tr>
                     <td>B</td>
@@ -558,7 +568,7 @@
             <br />
             <br />
             <br />
-            <i>By Niels Daemen</i>
+            <i style="color:#a9007c">By Niels Daemen</i>
         </div>
     </div>
 
@@ -570,6 +580,24 @@
     <canvas id="mainCanvas">
         Your browser does not support HTML5, you must be using a really old browser!
     </canvas>
+
+    <script>
+// 1. Меняем базовую переменную
+TimePerIteration = 0.008; 
+
+// 2. Жёстко прописываем скорость внутрь объекта управления (guiControls)
+if (typeof guiControls !== 'undefined') {
+  guiControls.TimePerIteration = 0.008;
+}
+
+// 3. Безопасно включаем блюр без лишних функций и обёрток
+const allowBlurElement = document.getElementById('allowBlur');
+if (allowBlurElement) {
+  allowBlurElement.style.display = 'block';
+}
+
+</script>
+
 </body>
 
 </html>
