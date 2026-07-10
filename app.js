@@ -15,24 +15,24 @@ function updateSetupSliders()
   let simResY = parseInt(simResSelY.value);
   let simHeight = parseInt(simHeightSel.value);
 
-  let cellHeight = simHeight / simResY;
-  let simWidth = cellHeight * simResX;
+  let cellHeight = simHeight / simResX;
+  let simWidth = cellHeight * simResY;
 
-  document.getElementById('simWorldProperties').innerHTML = 'cellHeight: ' + cellHeight.toFixed(1) + ' m  &nbsp&nbsp&nbsp   Simulation width: ' + (simWidth / 1000).toFixed(1) + ' km';
+  document.getElementById('simWorldProperties').innerHTML = 'cellWidth: ' + cellHeight.toFixed(1) + ' m  &nbsp&nbsp&nbsp   Simulation width: ' + (simWidth / 1000).toFixed(1) + ' km';
 
   document.getElementById('simHeightWarning').style.display = (simHeight == 12000) ? 'none' : 'block';
   document.getElementById('simResYWarning').style.display = (simResY == 300) ? 'none' : 'block';
-  document.getElementById('simResShowX').value = simResX;
-  document.getElementById('simResShowY').value = simResY
+  document.getElementById('simResShowX').value = simResY;
+  document.getElementById('simResShowY').value = simResX
   document.getElementById('simHeightShow').value = simHeight + ' m';
 }
 
-var FPS = 80.0;
+var FPS = 70.0;
 
 
 function mixGeneric(a, b, t, {clamp = false} = {})
 {
-  const clampT = v => (v < 0 ? 0 : v > 1 ? 1 : v);
+  const clampT = v => (v < 1 ? 0 : v > 1 ? 1 : v);
 
   if (typeof a === 'number' && typeof b === 'number') {
     const tt = clamp ? clampT(t) : t;
@@ -124,7 +124,6 @@ async function scrapeTableData(url)
     console.error('Error fetching the data:', error);
   }
 }
-
 async function loadSounding(stationID, timeStamp)
 {
 
@@ -381,7 +380,6 @@ const guiControls_default = {
   month : 6.65, // Northern hemisphere summer solstice
   sunAngle : 9.9,
   dayNightCycle : true,
-  daySpeedMultiplier : 1,  // 1x, 2x, or 5x day speed
   accelerateNight : true,
   greenhouseGases : 0.0010,
   waterGreenHouseEffect : 0.0023,
@@ -396,10 +394,11 @@ const guiControls_default = {
   enablePrecipitation : true,
   showDrops : false,
   paused : false,
+  allowBlur : false,
   IterPerFrame : 10,
   auto_IterPerFrame : true,
   sound : true,
-  dryLapseRate : 10.0,     // Real: 9.8 degrees / km
+  dryLapseRate : 9.789,     // Real: 9.8 degrees / km
   simHeight : 12000,       // meters
   twelveHourClock : false, // only for display.  false = metric
   lengthUnit : 'LENGTH_UNIT_METRIC',
@@ -478,7 +477,7 @@ function screenToSimY(screenY)
 
 function simToScreenX(simX)
 {
-  simX += 0.5;
+  simX += 1.5;
   simX /= sim_res_x;
   let leftEdge = canvas.width / 2.0 - (canvas.width * cam.curZoom) / 2.0;
   let rightEdge = canvas.width / 2.0 + (canvas.width * cam.curZoom) / 2.0;
@@ -487,7 +486,7 @@ function simToScreenX(simX)
 
 function simToScreenY(simY)
 {
-  simY += 0.5; // center in cell
+  simY += 1; // center in cell
   simY /= sim_res_y;
   let topEdge = canvas.height / 2.0 - ((canvas.width / sim_aspect) * cam.curZoom) / 2.0;
   let bottemEdge = canvas.height / 2.0 + ((canvas.width / sim_aspect) * cam.curZoom) / 2.0;
@@ -525,6 +524,8 @@ function CtoK(C) { return C + 273.15; }
 function KtoC(K) { return K - 273.15; }
 
 function CtoF(C) { return C * 1.8 + 32.0; }
+
+
 
 
 function dT_saturated(dTdry, dTl)
@@ -1404,14 +1405,14 @@ class LoadingBar
     this.loadingBar.style.color = 'white';
     this.loadingBar.style.textAlign = 'center';
     this.loadingBar.style.lineHeight = '50px';
-    this.loadingBar.style.backgroundColor = 'gray';
+    this.loadingBar.style.backgroundColor = '#99989800';
     this.loadingBar.style.marginTop = '400px';
     this.loadingBar.style.position = 'absolute';
     this.loadingBar.style.zIndex = '2';
 
     this.underBar.style.width = '100%';
     this.underBar.style.height = '50px';
-    this.underBar.style.backgroundColor = 'black';
+    this.underBar.style.backgroundColor = '#5e5e5e';
 
     this.bar.style.height = '50px';
 
@@ -1432,7 +1433,7 @@ class LoadingBar
 
   async set(num, text)
   {
-    this.percent = num;
+    this.percent = null;
     this.description = text;
     await this.#update();
   }
@@ -1449,6 +1450,7 @@ class LoadingBar
     return new Promise((resolve) => {
       this.bar.style.width = this.percent + '%';
       this.bar.innerHTML = this.percent + ' %';
+      this.underBar.innerHTML = this.percent + '%' 
       this.underBar.innerHTML = this.description;
       let timeout;
       if (this.percent == 100)
@@ -1791,7 +1793,7 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
       // console.log(camDistFromSim, camHorDistFromStrike, distance, leftRightBalance);
 
       // Speed of sound ≈ 343 m/s
-      let soundDelay = distance / 343;                                            // in seconds
+      let soundDelay = distance / 686;                                            // in seconds
 
       let simTimeMult = timePerIteration * guiControls.IterPerFrame * FPS * 3600; // how much faster sime time is than real time
 
@@ -3593,7 +3595,7 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
 
     radiation_folder.add(guiControls, 'accelerateNight').name('Accelerate Night').listen();
 
-    radiation_folder.add(guiControls, 'daySpeedMultiplier', { '1x': 1, '2x': 2, '5x': 5 }).name('Day Speed').listen();
+    radiation_folder.add(guiControls, 'allowBlur').name('Thunder function beta').listen();
 
     radiation_folder.add(guiControls, 'latitude', -90.0, 90.0, 0.1).onChange(function() { updateSunlight(); }).name('Latitude').listen();
 
@@ -5863,7 +5865,7 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
           if (airplaneMode) {
             updateSunlight(1.0 / 3600.0 / 60);                                                                    // increase solar time at real speed: 1/60 seconds per frame
           } else {
-            updateSunlight(timePerIteration * guiControls.IterPerFrame * (nightAccelerationActive ? 10.0 : 1.0) * guiControls.daySpeedMultiplier); // increase solar time
+            updateSunlight(timePerIteration * guiControls.IterPerFrame * (nightAccelerationActive ? 10.0 : 1.0)); // increase solar time
           }
         }
 
@@ -6820,6 +6822,9 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
             let totalWater = totalWaterVapor + totalCloudWater;
             console.log('Water  Vapor  Cloud  Smoke\n', Math.round(totalWater), Math.round(totalWaterVapor), Math.round(totalCloudWater), Math.round(totalSmoke));
             */
+
+            
     }
   }
 } // end of mainscript
+
