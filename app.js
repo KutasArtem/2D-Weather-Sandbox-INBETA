@@ -996,7 +996,7 @@ class Weatherstation
               color : 'white' // White color for the x-axis labels
             },
             grid : {
-              color : 'rgba(255, 255, 255, 0.2)' // Optional: light white for grid lines
+              color : 'rgba(255, 255, 255, 0.21)' // Optional: light white for grid lines
             }
           },
           y : {
@@ -1009,7 +1009,7 @@ class Weatherstation
               color : 'white' // Make sure title color is white
             },
             grid : {
-              color : 'rgba(255, 255, 255, 0.2)' // Optional: light white for grid lines
+              color : 'rgba(255, 255, 255, 0.22)' // Optional: light white for grid lines
             }
           }
         },
@@ -6828,7 +6828,4 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
   }
 } // end of mainscript
 
-//make tornado spawn physic
-
-
-const tornado = document.getElementById('')
+//beta const tornado = document.getElementById('')
