@@ -2,14 +2,15 @@
 <html lang="en">
 
 <head>
-    <meta charset="utf-8" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title >2D Weather Sandbox</title>
     <script type="text/javascript" src="libraries/dat.gui.min.js"></script>
     <script type="text/javascript" src="libraries/pako.min.js"></script>
     <script type="text/javascript" src="libraries/chart.js"></script>
     <script type="text/javascript" src="libraries/chartjs-adapter-date-fns.js"></script>
     <script type="text/javascript" src="app.js"></script>
-    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+    <link rel="shortcut icon" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQYwkON54zkvXbmsD7kmlYVd8-f8NWvQsnrkk95yh2-uw&s=10">
     <style>
 
        
@@ -26,7 +27,7 @@
         body {
             margin: 0;
             font-family: 'Arial', sans-serif;
-            background: url('resources/img/background.png') bottom left no-repeat;
+            background: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRpUl2FRHGszT_5v70u8NeVO2ChGqWBGrPLSO2v09COlw&s') bottom left no-repeat;
             background-size: cover;
             background-attachment: fixed;
             color: var(--text-color);
@@ -518,7 +519,10 @@
                 </tr>
                 <tr>
                     <td>ALT</td>
-                    <td>Toggle Radar Display / <span style="color:red;">BETA <span style="color: rgb(255, 0, 98)">!</span></span></td>
+                    <td>
+                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS9qjufhVAEaiU-U4JYy4hJgCMv7U1Dj9UxocqjpBHo8mkuWUI3KZtuArlX&s=10" alt="Brush" style="width: 20px; height: 20px; vertical-align: middle; border-radius: 20%; background-color: #000; padding: 2px;">
+                        <text style="vertical-align: middle;">Toggle Radar Display / <span style="color:red;">BETA <span style="color: rgb(255, 0, 98)">!</span></span></text>
+                    </td>
                 </tr>
                 <tr>
                     <td>V</td>
@@ -562,13 +566,13 @@
             <h1 style="color: rgb(0, 255, 0)">$ Support me on Patreon $</h1>
             If you love my project and want to support its future development, please consider <a
                 href="https://www.patreon.com/user?u=76043935" target="_blank" rel="noopener noreferrer"
-                style="color: white">supporting me on patreon</a>
+                style="color: rgb(255, 255, 255)">supporting me on patreon</a>
             <br />
             Every small amount helps! Thank you!
             <br />
             <br />
             <br />
-            <i style="color:#a9007c">By Niels Daemen</i>
+            <i style="color:#ffffff">Created by Niels Daemen X modified</i>
         </div>
     </div>
 
@@ -582,15 +586,15 @@
     </canvas>
 
     <script>
-// 1. Меняем базовую переменную
+// 1. 
 TimePerIteration = 0.008; 
 
-// 2. Жёстко прописываем скорость внутрь объекта управления (guiControls)
+// 2.
 if (typeof guiControls !== 'undefined') {
   guiControls.TimePerIteration = 0.008;
 }
 
-// 3. Безопасно включаем блюр без лишних функций и обёрток
+// 3.
 const allowBlurElement = document.getElementById('allowBlur');
 if (allowBlurElement) {
   allowBlurElement.style.display = 'block';
