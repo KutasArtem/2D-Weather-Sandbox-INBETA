@@ -229,6 +229,7 @@ vec4 getAirColor(vec2 fragCoordIn)
 
   float totalDensity = cloudDensity + water[PRECIPITATION] * 0.8; // visualize precipitation
 
+
   // float cloudOpacity = clamp(cloudwater * 4.0, 0.0, 1.0);
   float cloudOpacity = clamp(1.0 - (1.0 / (1. + totalDensity)), 0.0, 1.0);
 
@@ -246,7 +247,7 @@ vec4 getAirColor(vec2 fragCoordIn)
   shadowLight += fireIntensity * 2.5;                                                                                 // 1.5
 
   float opacity = 1. - (1. - smokeOpacity) * (1. - cloudOpacity);                                                     // alpha blending
-  vec3 color = (smokeOrFireCol * smokeOpacity / opacity) + (cloudCol * cloudOpacity * (1. - smokeOpacity) / opacity); // color blending
+  vec3 color = opacity > 0.0 ? ((smokeOrFireCol * smokeOpacity / opacity) + (cloudCol * cloudOpacity * (1. - smokeOpacity) / opacity)) : vec3(0.0); // color blending
 
 
   vec4 lightningData = texture(lightningDataTex, vec2(0.5));
@@ -290,10 +291,7 @@ void main()
   bool nightTime = abs(sunAngle) > 85.0 * deg2rad; // false = day time
 
   shadowLight = minShadowLight;
-
-  // Pre-declare for use across all code
-  float localX = fract(fragCoord.x);
-  float localY = fract(fragCoord.y);
+  onLight = vec3(0.);
 
   // fragmentColor = vec4(vec3(light),1); return; // View light texture for debugging
 
@@ -306,7 +304,7 @@ void main()
     color = getWallColor(depth);
 
     lightIntensity = texture(lightTex, vec2(texCoord.x, texelSize.y))[0] / standardSunBrightness; // sample lowest part of sim area
-    lightIntensity *= pow(0.5, -fragCoord.y);                                                     // 0.5 should be same as in lightingshader deeper is darker
+    lightIntensity *= pow(3.5, fragCoord.y);                                                      // deeper is darker
 
   } else if (texCoord.y > 1.0) {                                                                  // above simulation area
     // color = vec3(0); // no need to set
@@ -346,23 +344,9 @@ void main()
     case WALLTYPE_FIRE:
     case WALLTYPE_LAND:
 
-      // Improved smooth interpolation for depth value - both horizontal and vertical
-      // Hermite smoothstep for smoother interpolation
-      float smoothX = localX * localX * (3.0 - 2.0 * localX);
-      float smoothY = localY * localY * (3.0 - 2.0 * localY);
-      
-      // Bilinear interpolation with smoothing
-      float depth00 = float(-wallXmY0[VERT_DISTANCE]);
-      float depth10 = float(-wall[VERT_DISTANCE]);
-      float depth01 = float(-wallXpY0[VERT_DISTANCE]);
-      
-      float interpDepth = mix(
-        mix(depth00, depth10, smoothX),
-        depth01,
-        smoothX
-      );
-      
-      float depth = interpDepth - localY;
+      // horizontally interpolate depth value
+      float interpDepth = mix(mix(float(-wallXmY0[VERT_DISTANCE]), float(-wall[VERT_DISTANCE]), clamp(fract(fragCoord.x) + 0.5, 0.5, 1.)), float(-wallXpY0[VERT_DISTANCE]), clamp(fract(fragCoord.x) - 0.5, 0., 0.5));
+      float depth = interpDepth - fract(fragCoord.y); // - 1.0 ?
 
       color = getWallColor(depth);
 
@@ -405,6 +389,9 @@ void main()
       }
 
       // draw 45° slopes under water
+
+      float localX = fract(fragCoord.x);
+      float localY = fract(fragCoord.y);
 
       if (wallXmY0[DISTANCE] == 0 && wallXmY0[TYPE] != WALLTYPE_WATER && (fragCoord.y < 1. || wallX0Ym[TYPE] != WALLTYPE_WATER)) { // wall to the left and below
         if (localX + localY < 1.0) {
@@ -452,6 +439,8 @@ void main()
 
 
     if (wall[VERT_DISTANCE] >= 0 && wall[VERT_DISTANCE] < 10) { // near surface
+      float localX = fract(fragCoord.x);
+      float localY = fract(fragCoord.y);
       // ivec4 wallX0Ym = texture(wallTex, texCoordX0Ym);
 
 #define texAspect 2560. / 4096. // height / width of tree texture

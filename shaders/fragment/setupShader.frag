@@ -26,18 +26,11 @@ layout(location = 2) out ivec4 wall;
 
 float rand(float n) { return fract(sin(n) * 43758.5453123); }
 
-// Hermite interpolation for smoother noise
-float hermiteInterp(float t) {
-  return t * t * (3.0 - 2.0 * t);
-}
-
-// Improved Perlin-like noise with smoother interpolation
 float noise(float p)
 {
   float fl = floor(p);
   float fc = fract(p);
-  float u = hermiteInterp(fc);
-  return mix(rand(fl), rand(fl + 1.), u) - 0.5;
+  return mix(rand(fl), rand(fl + 1.), fc) - 0.5;
 }
 
 void main()
@@ -59,23 +52,14 @@ void main()
     height = 0.005;
 
   } else { // generate hills / mountains
-    float var = fragCoord.x * 0.0008;
-    
-    // Smooth terrain with Perlin-like noise
-    float amplitude = 1.0;
-    float frequency = 0.5;  // Start with lower frequency for smoother base
-    float maxValue = 0.0;
-    
-    for (float i = 0.0; i < 6.0; i++) { // Fewer octaves for less detail complexity
-      height += noise(var * frequency + rand(seed + i * 10.0) * 100.0) * amplitude;
-      maxValue += amplitude;
-      amplitude *= 0.48; // Lower persistence = smoother transitions
-      frequency *= 1.75; // Lower lacunarity = gentler frequency transitions
+    float var = fragCoord.x * 0.001;
+
+    for (float i = 2.0; i < 1000.0; i *= 1.5) { // add multiple frequencies of noise together
+      height += noise(var * i + rand(seed + i) * 10.) * 0.5 / i;
     }
-    
-    height /= maxValue; // Normalize
-    height *= heightMult * 0.5;  // Reduce height by half for gentler slopes
-    height_m = height * simHeight;
+
+    height *= heightMult;
+    height_m = height * simHeight; // sim height
   }
 
   if (texCoord.y < texelSize.y || texCoord.y < height) {                                                      // set to wall

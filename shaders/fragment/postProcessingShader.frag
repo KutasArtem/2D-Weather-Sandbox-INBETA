@@ -30,9 +30,11 @@ void main()
 
   outputCol += bloom * 0.990; // apply bloom
 
-  // outputCol = outputCol / (outputCol + vec3(1.0)) * 1.1; // Tone mapping
-
   outputCol *= exposure;
+
+  // Soft tone mapping so bright areas (sky, sunlit cloud, lightning) roll off
+  // instead of hard-clipping to a white screen.
+  outputCol = outputCol / (outputCol + vec3(0.6));
 
   outputCol = pow(outputCol, ONE_OVER_GAMMA); // gamma correction
 

@@ -2,15 +2,18 @@
 <html lang="en">
 
 <head>
-    <meta charset="utf-8" />
-    <title>2D Weather Sandbox</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title >2D Weather Sandbox</title>
     <script type="text/javascript" src="libraries/dat.gui.min.js"></script>
     <script type="text/javascript" src="libraries/pako.min.js"></script>
     <script type="text/javascript" src="libraries/chart.js"></script>
     <script type="text/javascript" src="libraries/chartjs-adapter-date-fns.js"></script>
     <script type="text/javascript" src="app.js"></script>
-    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+    <link rel="shortcut icon" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQYwkON54zkvXbmsD7kmlYVd8-f8NWvQsnrkk95yh2-uw&s=10">
     <style>
+
+       
         :root {
             --text-color: #ffffff;
             --accent-color: #4a90e2;
@@ -24,7 +27,7 @@
         body {
             margin: 0;
             font-family: 'Arial', sans-serif;
-            background: url('resources/img/background.png') bottom left no-repeat;
+            background: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRpUl2FRHGszT_5v70u8NeVO2ChGqWBGrPLSO2v09COlw&s') bottom left no-repeat;
             background-size: cover;
             background-attachment: fixed;
             color: var(--text-color);
@@ -172,6 +175,55 @@
             display: none;
         }
 
+        #radarLegend {
+            position: fixed;
+            right: 14px;
+            bottom: 14px;
+            z-index: 5;
+            display: none;
+            background: rgba(0, 0, 0, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 8px;
+            padding: 8px 10px;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            backdrop-filter: blur(4px);
+            pointer-events: none;
+            user-select: none;
+        }
+
+        #radarLegendTitle {
+            text-align: center;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+            color: #9fe3ff;
+        }
+
+        #radarLegendBar {
+            display: inline-block;
+            width: 16px;
+            height: 140px;
+            border-radius: 3px;
+            vertical-align: top;
+            background: linear-gradient(to top, #d9f2ff, #bf00ff);
+        }
+
+        #radarLegendLabels {
+            display: inline-block;
+            height: 140px;
+            margin-left: 6px;
+            vertical-align: top;
+        }
+
+        #radarLegendLabels span {
+            display: block;
+            height: 28px;
+            line-height: 28px;
+            opacity: 0.85;
+        }
+
         #graphCanvas {
             position: fixed;
             z-index: 1;
@@ -267,7 +319,7 @@
 <body id="body" onload="updateSetupSliders();">
     <nav class="main-nav">
         <div class="nav-title">
-            <h1>2D Weather Sandbox</h1>
+            <h1 style="color: white; backdrop-filter: brightness(9.9); border-radius: 10px; padding: 0.5rem; mix-blend-mode: difference;">2D Weather Sandbox</h1>
         </div>
         <div class="nav-icons">
             <a href="https://github.com/niels747/2D-Weather-Sandbox" target="_blank" rel="noopener noreferrer">
@@ -335,7 +387,7 @@
                         <input type="range" min="100" max="500" value="300" step="10" id="simResSelY" />
                         <output id="simResShowY"></output>
                     </td>
-                    <td><i id="simResYWarning" style="color:rgb(255, 61, 61); display: none;">Vertical resolutions
+                    <td><i id="simResYWarning" style="color:rgb(252, 52, 52); display: none;">Vertical resolutions
                             other
                             than 300 are not optimized and may be buggy!</i></td>
                 </tr>
@@ -345,7 +397,7 @@
                         <input type="range" min="5000" max="15000" value="12000" step="100" id="simHeightSel" />
                         <output id="simHeightShow"></output>
                     </td>
-                    <td><i id="simHeightWarning" style="color:rgb(255, 61, 61); display: none;">Sim heights other
+                    <td><i id="simHeightWarning" style="color:rgb(252, 42, 42); display: none;">Sim heights other
                             than
                             12000 m are not optimized and may be buggy!</i></td>
                 </tr>
@@ -405,7 +457,8 @@
             </ul>
         </div>
 
-        <div class="controls">
+        <div class="controls" style="color: white; mix-blend-mode: color-dodge;">
+            
             <h2>Controls</h2>
             <h3>Mouse</h3>
             <ul>
@@ -514,8 +567,18 @@
                     <td>Show / Hide GUI</td>
                 </tr>
                 <tr>
+                    <td>ALT</td>
+                    <td>
+                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS9qjufhVAEaiU-U4JYy4hJgCMv7U1Dj9UxocqjpBHo8mkuWUI3KZtuArlX&s=10" alt="Brush" style="width: 20px; height: 20px; vertical-align: middle; border-radius: 20%; background-color: #000; padding: 2px;">
+                        <text style="vertical-align: middle;">Toggle Radar Display / <span style="color:red;">BETA <span style="color: rgb(255, 0, 98)">!</span></span></text>
+                    </td>
+                </tr>
+                <tr>
                     <td>V</td>
-                    <td>Reset View</td>
+                    <td>
+                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQTtgQTe3zD181AiJ-5DLpnZpDDof3DcKL3XMODn1z2TQ&s=10" alt="V" style="width: 20px; height: 20px; vertical-align: middle; border-radius: 20%; background-color: #000; padding: 2px;">
+                        <text style="vertical-align: middle;">main view reset</text>
+                    </td>
                 </tr>
                 <tr>
                     <td>B</td>
@@ -552,13 +615,13 @@
             <h1 style="color: rgb(0, 255, 0)">$ Support me on Patreon $</h1>
             If you love my project and want to support its future development, please consider <a
                 href="https://www.patreon.com/user?u=76043935" target="_blank" rel="noopener noreferrer"
-                style="color: white">supporting me on patreon</a>
+                style="color: rgb(255, 255, 255)">supporting me on patreon</a>
             <br />
             Every small amount helps! Thank you!
             <br />
             <br />
             <br />
-            <i>By Niels Daemen</i>
+            <i style="color:#ffffff">Created by Niels Daemen X modified</i>
         </div>
     </div>
 
@@ -570,6 +633,36 @@
     <canvas id="mainCanvas">
         Your browser does not support HTML5, you must be using a really old browser!
     </canvas>
+
+    <div id="radarLegend">
+        <div id="radarLegendBar"></div>
+        <div id="radarLegendLabels">
+            <span>extreme</span>
+            <span>heavy</span>
+            <span>moderate</span>
+            <span>light</span>
+            <span>none</span>
+        </div>
+        <div id="radarLegendTitle">RADAR</div>
+    </div>
+
+    <script>
+// 1. 
+TimePerIteration = 0.008; 
+
+// 2.
+if (typeof guiControls !== 'undefined') {
+  guiControls.TimePerIteration = 0.008;
+}
+
+// 3.
+const allowBlurElement = document.getElementById('allowBlur');
+if (allowBlurElement) {
+  allowBlurElement.style.display = 'block';
+}
+
+</script>
+
 </body>
 
 </html>
