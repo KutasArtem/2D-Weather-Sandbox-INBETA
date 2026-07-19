@@ -343,8 +343,8 @@ const saveFileVersionID = 263574036; // Uint32 id to check if save file is compa
 
 const guiControls_default = {
   vorticity : 0.008,
-  dragMultiplier : 0, // 0.01
-  wind : 0,
+  dragMultiplier : 10.01, // 0.01
+  wind : 10.0,
   globalEffectsStartAlt : 0,
   globalEffectsEndAlt : 10000,
   globalDrying : 0.000000, // 0.000010
@@ -353,23 +353,23 @@ const guiControls_default = {
   sunIntensity : 1.0,
   waterTemperature : 25.0, // °C
   dynamicWaterTemperature : true,
-  landEvaporation : 0.00005,
-  waterEvaporation : 0.0003,
+  landEvaporation : 1.00005,
+  waterEvaporation : 2.0001,
   evapHeat : 2.60,          //  Real: 2260 J/g
   meltingHeat : 0.334,       //  Real:  334 J/g
   condensationRate : 0.0050,
-  waterWeight : 0.30,       // 0.50
+  waterWeight : 0.25,       // 0.50
   inactiveDroplets : 0,
   aboveZeroThreshold : 1.0, // PRECIPITATION
-  subZeroThreshold : 0.0075, // 0.01
-  spawnChance : 0.000075,    // 30. 10 to 50
-  snowDensity : 0.22,        // 0.3
+  subZeroThreshold : 0.005, // 0.01
+  spawnChance : 0.00005,    // 30. 10 to 50
+  snowDensity : 0.2,        // 0.3
   fallSpeed : 0.0003,
-  growthRate0C : 0.0002,    // 0.0005
-  growthRate_30C : 0.002,   // 0.01
+  growthRate0C : 0.0001,    // 0.0005
+  growthRate_30C : 0.001,   // 0.01
   freezingRate : 0.01,
   meltingRate : 0.01,
-  evapRate : 0.0006, // 0.0005
+  evapRate : 0.0008, // 0.0005
   displayMode : 'DISP_REAL',
   radarGain : 0.2,          // radar precipitation sensitivity
   radarGamma : 0.7,         // contrast / brightness curve (lower = brighter)
@@ -405,7 +405,7 @@ const guiControls_default = {
   enablePrecipitation : true,
   showDrops : false,
   paused : false,
-  allowBlur : true,
+  allowBlur : false,
   IterPerFrame : 5,
   auto_IterPerFrame : true,
   sound : true,
@@ -461,9 +461,6 @@ var dryLapse;
 
 const timePerIteration = 0.00008; // in hours (0.00008 = 0.288 sec, at 40m cell size that means the speed of light & sound = 138.88 m/s = 500 km/h)
 
-if (timePerIteration >= 0.00009) {
-  console.warn('timePerIteration is set to a high value. This will make the simulation run very fast and may cause instability.');
-}
 var NUM_DROPLETS;
 const NUM_DROPLETS_DEVIDER = 25; // 25
 
@@ -913,8 +910,8 @@ function createAmbientLightFBOs()
 
 class Weatherstation
 {
-  #width = 110; // 100 display size
-  #height = 60; // 55
+  #width = 120; // 100 display size
+  #height = 70; // 55
   #mainDiv;
   #canvas;
   #c; // 2d canvas context
@@ -1035,7 +1032,7 @@ class Weatherstation
           {label : 'Air Quality', data : [], backgroundColor : '#803c00', borderColor : '#803c00', radius : 0, borderWidth : 1, fill : false, hidden : true},                           //
           {label : 'Precipitation', data : [], backgroundColor : '#0055FF', borderColor : '#0055FF', radius : 0, borderWidth : 1, fill : false, hidden : true, reallyHidden : true},    //
           {label : 'Snow Height', data : [], backgroundColor : '#FFFFFF', borderColor : '#FFFFFF', radius : 0, borderWidth : 1, fill : false, hidden : true, reallyHidden : true},      //
-          {label : 'Water Temperature', data : [], backgroundColor : '#3866fd', borderColor : '#3463fe', radius : 0, borderWidth : 1, fill : false, hidden : true, reallyHidden : true} //
+          {label : 'Water Temperature', data : [], backgroundColor : '#406cff', borderColor : '#406cff', radius : 0, borderWidth : 1, fill : false, hidden : true, reallyHidden : true} //
         ]
       },
       options : {
@@ -1460,14 +1457,14 @@ class LoadingBar
     this.loadingBar.style.color = 'white';
     this.loadingBar.style.textAlign = 'center';
     this.loadingBar.style.lineHeight = '50px';
-    this.loadingBar.style.backgroundColor = '#444444';
+    this.loadingBar.style.backgroundColor = '#99989800';
     this.loadingBar.style.marginTop = '400px';
     this.loadingBar.style.position = 'absolute';
     this.loadingBar.style.zIndex = '2';
 
     this.underBar.style.width = '100%';
     this.underBar.style.height = '50px';
-    this.underBar.style.backgroundColor = '#464646';
+    this.underBar.style.backgroundColor = '#5e5e5e';
 
     this.bar.style.height = '50px';
 
@@ -2552,7 +2549,7 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
         unit = ' ft'
       }
 
-      const pxPerAlt = 0.55;
+      const pxPerAlt = 0.65;
       const altRange = 500; // + and -
 
       ctx.beginPath();
