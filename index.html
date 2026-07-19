@@ -175,6 +175,55 @@
             display: none;
         }
 
+        #radarLegend {
+            position: fixed;
+            right: 14px;
+            bottom: 14px;
+            z-index: 5;
+            display: none;
+            background: rgba(0, 0, 0, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 8px;
+            padding: 8px 10px;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            backdrop-filter: blur(4px);
+            pointer-events: none;
+            user-select: none;
+        }
+
+        #radarLegendTitle {
+            text-align: center;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+            color: #9fe3ff;
+        }
+
+        #radarLegendBar {
+            display: inline-block;
+            width: 16px;
+            height: 140px;
+            border-radius: 3px;
+            vertical-align: top;
+            background: linear-gradient(to top, #d9f2ff, #bf00ff);
+        }
+
+        #radarLegendLabels {
+            display: inline-block;
+            height: 140px;
+            margin-left: 6px;
+            vertical-align: top;
+        }
+
+        #radarLegendLabels span {
+            display: block;
+            height: 28px;
+            line-height: 28px;
+            opacity: 0.85;
+        }
+
         #graphCanvas {
             position: fixed;
             z-index: 1;
@@ -584,6 +633,18 @@
     <canvas id="mainCanvas">
         Your browser does not support HTML5, you must be using a really old browser!
     </canvas>
+
+    <div id="radarLegend">
+        <div id="radarLegendBar"></div>
+        <div id="radarLegendLabels">
+            <span>extreme</span>
+            <span>heavy</span>
+            <span>moderate</span>
+            <span>light</span>
+            <span>none</span>
+        </div>
+        <div id="radarLegendTitle">RADAR</div>
+    </div>
 
     <script>
 // 1. 

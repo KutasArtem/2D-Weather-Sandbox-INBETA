@@ -1,114 +1,150 @@
 onmessage = (event) => {
   const msg = event.data;
-  // console.log(msg);
-  let imgElement = generateLightningBolt(msg.width, msg.height);
-  postMessage(imgElement);
+  let imgData = generateLightningBolt(msg.width, msg.height);
+  postMessage(imgData);
 };
 
-
-function generateLightningBolt(width, height)
-{
-  const lightningCanvas = new OffscreenCanvas(width, height);
-  const ctx = lightningCanvas.getContext('2d');
-
+function generateLightningBolt(width, height) {
+  const canvas = new OffscreenCanvas(width, height);
+  const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, width, height);
 
+  // --- Цвет: бело-голубое ядро + фиолетовое свечение ---
+  function genLightningColor(lineWidth, maxLineWidth) {
+    const t = Math.min(lineWidth / maxLineWidth, 1.0); // 1 = толстый (яркий), 0 = тонкий
+    const brightness = Math.pow(t, 1.5);
 
-  function genLightningColor(lineWidth)
-  {
-    const colR = 12;
-    const colG = 12;
-    const colB = 12;
-    brightness = Math.pow(lineWidth, 2.0);
-    return `rgb(${colR * brightness}, ${colG * brightness}, ${colB * brightness})`;
+    // Ядро: от голубовато-белого (толстое) до синеватого (тонкое)
+    const r = Math.round(180 + 75 * brightness);   // 180..255
+    const g = Math.round(190 + 65 * brightness);   // 190..255
+    const b = 255;                                  // всегда максимум → голубой оттенок
+    const a = 0.4 + 0.6 * brightness;              // тонкие ветви полупрозрачны
+
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
   }
 
+  const STEP = 3;              // шаг в пикселях (было 1 — слишком мелко)
+  const MAIN_WIDTH = 7.0;     // начальная толщина основного канала
+  const targetAngle = 0.0;    // общее направление — вниз
+
+  // ==================== Основной канал ====================
+  let startX = width / 2 + (Math.random() - 0.5) * width * 0.1;
+  let startY = 0;
+  let angle = (Math.random() - 0.5) * 0.4;
+  let lineWidth = MAIN_WIDTH;
+
+  // Свечение (glow) — рисуем толстой полупрозрачной линией ПОД основной
+  ctx.save();
+  ctx.shadowColor = 'rgba(140, 160, 255, 0.8)';
+  ctx.shadowBlur = 25;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
 
   ctx.beginPath();
-
-  let startX = width / 2.0;
-  let startY = 0;
-  let angle = Math.PI / 6.;
-  let lineWidth = 9.0;
-  const targetAngle = 0.0;
-
   ctx.moveTo(startX, startY);
-
   ctx.lineWidth = lineWidth;
 
   while (startY < height) {
+    const nextX = startX + Math.sin(angle) * STEP;
+    const nextY = startY + Math.cos(angle) * STEP;
 
-    const nextX = startX + Math.sin(angle);
-    const nextY = startY + Math.cos(angle);
-
-    angle += (Math.random() - 0.5) * 1.4;  // 0.7
-
-    angle -= (angle - targetAngle) * 0.08; // keep it going in a general direction
+    // Случайное отклонение + возврат к целевому направлению
+    angle += (Math.random() - 0.5) * 1.2;
+    angle -= (angle - targetAngle) * 0.06;
+    angle = Math.max(-1.3, Math.min(1.3, angle));
 
     ctx.lineTo(nextX, nextY);
-
     startX = nextX;
     startY = nextY;
 
+    // Сужение основного канала книзу
+    lineWidth = MAIN_WIDTH * (1.0 - 0.5 * (nextY / height));
+    ctx.lineWidth = lineWidth;
 
-    if (Math.random() < 0.015 * (1. - nextY / height)) { // branch
-      ctx.strokeStyle = genLightningColor(lineWidth);
+    // Ветвление основного канала
+    if (Math.random() < 0.02 * (1.0 - nextY / height)) {
+      ctx.strokeStyle = genLightningColor(lineWidth, MAIN_WIDTH);
       ctx.stroke();
-      drawBranch(nextX, nextY, targetAngle + (Math.random() - 0.5) * 2.5, lineWidth * 0.5 * Math.random());
+
+      drawBranch(
+        nextX, nextY,
+        targetAngle + (Math.random() - 0.5) * 2.2,
+        lineWidth * (0.3 + Math.random() * 0.3),
+        1
+      );
+
       ctx.beginPath();
-      ctx.moveTo(nextX, nextY); // move back to last position after drawing branch
+      ctx.moveTo(nextX, nextY);
       ctx.lineWidth = lineWidth;
     }
   }
-  ctx.strokeStyle = genLightningColor(lineWidth);
+
+  ctx.strokeStyle = genLightningColor(lineWidth, MAIN_WIDTH);
   ctx.stroke();
+  ctx.restore();
 
+  // ==================== Ветви ====================
+  function drawBranch(bx, by, bTargetAngle, bLineWidth, depth) {
+    const MAX_DEPTH = 6;
+    if (depth > MAX_DEPTH || bLineWidth < 0.3) return;
 
-  return ctx.getImageData(0, 0, width, height);
+    let angle = bTargetAngle;
+    let x = bx;
+    let y = by;
+    let lw = bLineWidth;
 
-
-  function drawBranch(startX, startY, targetAngle, line_width)
-  {
-    let angle = targetAngle;
+    ctx.save();
+    ctx.shadowColor = 'rgba(140, 160, 255, 0.5)';
+    ctx.shadowBlur = 12;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
 
     ctx.beginPath();
-    ctx.moveTo(startX, startY);
-    ctx.lineWidth = line_width;
+    ctx.moveTo(x, y);
+    ctx.lineWidth = lw;
 
-    while (startY < height) {
+    const branchHeight = height * (0.3 + Math.random() * 0.4); // ветвь короче основного
+    const endY = y + branchHeight;
 
-      const nextX = startX + Math.sin(angle);
-      const nextY = startY + Math.cos(angle);
+    while (y < endY && y < height) {
+      const nx = x + Math.sin(angle) * STEP;
+      const ny = y + Math.cos(angle) * STEP;
 
-      angle += (Math.random() - 0.5) * 0.7;
+      angle += (Math.random() - 0.5) * 0.9;
+      angle -= (angle - bTargetAngle) * 0.05;
+      angle = Math.max(-1.4, Math.min(1.4, angle));
 
-      angle -= (angle - targetAngle) * 0.08; // keep it going in a general direction
+      ctx.lineTo(nx, ny);
+      x = nx;
+      y = ny;
 
-      ctx.lineTo(nextX, nextY);
+      // Сужение ветви
+      lw -= 0.04;
+      if (lw < 0.3) break;
+      ctx.lineWidth = lw;
 
-      startX = nextX;
-      startY = nextY;
-
-      if (Math.random() < 0.018) { // reduce width
-
-        ctx.strokeStyle = genLightningColor(line_width);
+      // Рекурсивное ветвление
+      if (Math.random() < 0.025 && depth < MAX_DEPTH) {
+        ctx.strokeStyle = genLightningColor(lw, MAIN_WIDTH);
         ctx.stroke();
-        line_width -= 0.2;
 
-        if (line_width < 0.1)
-          return;
-
-        if (Math.random() < 0.1) { // branch 0.005
-
-          drawBranch(nextX, nextY, targetAngle + (Math.random() - 0.5) * 1.5, line_width);
-        }
+        drawBranch(
+          nx, ny,
+          bTargetAngle + (Math.random() - 0.5) * 1.8,
+          lw * (0.4 + Math.random() * 0.3),
+          depth + 1
+        );
 
         ctx.beginPath();
-        ctx.moveTo(nextX, nextY); // move back to last position after drawing branch
-        ctx.lineWidth = line_width;
+        ctx.moveTo(nx, ny);
+        ctx.lineWidth = lw;
       }
     }
-    ctx.strokeStyle = genLightningColor(line_width);
+
+    ctx.strokeStyle = genLightningColor(lw, MAIN_WIDTH);
     ctx.stroke();
+    ctx.restore();
   }
+
+  return ctx.getImageData(0, 0, width, height);
 }

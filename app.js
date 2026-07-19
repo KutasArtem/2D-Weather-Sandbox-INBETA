@@ -371,6 +371,17 @@ const guiControls_default = {
   meltingRate : 0.01,
   evapRate : 0.0006, // 0.0005
   displayMode : 'DISP_REAL',
+  radarGain : 0.2,          // radar precipitation sensitivity
+  radarGamma : 0.7,         // contrast / brightness curve (lower = brighter)
+  radarCloudMix : 0.01,     // how much cloud water adds to the radar signal
+  radarBackground : 0.06,   // darkness of terrain in radar mode (0 = black)
+  showThunder : true,       // overlay lightning flashes
+  thunderIntensity : 0.6,   // strength of the thunder glow
+  radarScheme : 0,          // 0 NEXRAD, 1 Turbo, 2 Monochrome
+  radarProduct : 0,         // 0 Reflectivity, 1 Velocity, 2 Cloud
+  radarSweep : false,       // rotating radar sweep
+  radarRings : false,       // range rings + crosshair
+  radarSmooth : false,      // light smoothing of the radar field
   wrapHorizontally : true,
   SmoothCam : true,
   camSpeed : 0.01,
@@ -411,6 +422,8 @@ var horizontalDisplayMult = 3.0; // 3.0 to cover srceen while zoomed out
 var guiControls;
 
 var displayVectorField = false;
+
+var previousDisplayMode = 'DISP_REAL'; // mode to return to when toggling radar off
 
 var displayWeatherStations = true;
 
@@ -453,6 +466,45 @@ if (timePerIteration >= 0.00009) {
 }
 var NUM_DROPLETS;
 const NUM_DROPLETS_DEVIDER = 25; // 25
+
+// Radar colormap stops (mirror the shader) used to draw the on-screen colorbar.
+const radarSchemeStops = {
+  0 : ['#d9f2ff', '#4dd9ff', '#0099ff', '#00ffa6', '#00ff00', '#8cff00', '#ffff00', '#ffb300', '#ff7300', '#ff2600', '#ff008c', '#bf00ff'],
+  1 : ['#30123b', '#28bceb', '#a4fc3c', '#fba80c', '#7a0403'],
+  2 : ['#000a1a', '#008cff', '#8cf2ff'],
+};
+
+function updateRadarLegend()
+{
+  let el = document.getElementById('radarLegendBar');
+  if (!el) return;
+  let stops = radarSchemeStops[guiControls.radarScheme] || radarSchemeStops[0];
+  let grad = 'linear-gradient(to top';
+  for (let i = 0; i < stops.length; i++) {
+    let pct = (i / (stops.length - 1)) * 100;
+    grad += ', ' + stops[i] + ' ' + pct.toFixed(0) + '%';
+  }
+  grad += ')';
+  el.style.background = grad;
+}
+
+let radarLegendVisible = false;
+
+function updateRadarLegendVisibility()
+{
+  let show = guiControls.displayMode == 'DISP_RADAR';
+  if (show == radarLegendVisible) return;
+  radarLegendVisible = show;
+  let el = document.getElementById('radarLegend');
+  if (el) {
+    el.style.display = show ? 'block' : 'none';
+    let title = document.getElementById('radarLegendTitle');
+    if (title) {
+      const names = ['RADAR', 'DOPPLER', 'CLOUD'];
+      title.textContent = names[guiControls.radarProduct] || 'RADAR';
+    }
+  }
+}
 
 let hdrFBO;
 
@@ -1436,7 +1488,7 @@ class LoadingBar
 
   async set(num, text)
   {
-    this.percent = null;
+    this.percent = num;
     this.description = text;
     await this.#update();
   }
@@ -3409,6 +3461,11 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
     }
   }
 
+  // make sure any newly added settings (e.g. radar controls) exist even when loading an old save file
+  for (const [key, value] of Object.entries(guiControls_default)) {
+    if (guiControls[key] === undefined) guiControls[key] = value;
+  }
+
   function setGuiUniforms()
   { // set all uniforms to new values
     gl.useProgram(boundaryProgram);
@@ -3576,6 +3633,7 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
         'Vegetation' : 'TOOL_VEGETATION',
         'Snow' : 'TOOL_WALL_SNOW',
         'Wind' : 'TOOL_WIND',
+        'wind Disabler' : 'TOOL_WIND_DISABLER',
         'Weather Station' : 'TOOL_STATION',
       })
       .name('Tool')
@@ -3794,7 +3852,8 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
         'Precipitation/Soil Moisture' : 'DISP_SOIL_MOISTURE',
         'Curl' : 'DISP_CURL',
         'Relative Humidity / Cloud Density' : 'DISP_HUMD',
-        'Air Quality' : 'DISP_AIRQUALITY'
+        'Air Quality' : 'DISP_AIRQUALITY',
+        'Radar (Thunder / Precipitation)' : 'DISP_RADAR'
       })
       .name('Display Mode')
       .listen();
@@ -3824,6 +3883,41 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
     display_folder.add(guiControls, 'showGraph').onChange(hideOrShowGraph).name('Show Sounding Graph').listen();
     display_folder.add(guiControls, 'showDrops').name('Show Droplets').listen();
     display_folder.add(guiControls, 'realDewPoint').name('Show Real Dew Point');
+
+
+    var radar_folder = datGui.addFolder('Radar Display');
+
+    radar_folder
+      .add(guiControls, 'radarScheme', {
+        'NEXRAD (classic)' : 0,
+        'Turbo (high contrast)' : 1,
+        'Monochrome blue' : 2,
+      })
+      .name('Color Scheme')
+      .onChange(updateRadarLegend);
+
+    radar_folder.add(guiControls, 'radarGain', 0.0, 5.0, 0.01).name('Precipitation Gain');
+    radar_folder.add(guiControls, 'radarGamma', 0.2, 2.0, 0.01).name('Contrast');
+    radar_folder.add(guiControls, 'radarCloudMix', 0.0, 0.2, 0.001).name('Cloud Mix');
+    radar_folder.add(guiControls, 'radarBackground', 0.0, 0.3, 0.005).name('Terrain Brightness');
+    radar_folder.add(guiControls, 'showThunder').name('Show Thunder');
+    radar_folder.add(guiControls, 'thunderIntensity', 0.0, 2.0, 0.01).name('Thunder Intensity');
+    radar_folder.add(guiControls, 'radarProduct', { 'Reflectivity' : 0, 'Velocity (Doppler)' : 1, 'Cloud / Storm' : 2 })
+      .name('Radar Product')
+      .onChange(function() {
+        let title = document.getElementById('radarLegendTitle');
+        if (title) {
+          const names = ['RADAR', 'DOPPLER', 'CLOUD'];
+          title.textContent = names[guiControls.radarProduct] || 'RADAR';
+        }
+      });
+    radar_folder.add(guiControls, 'radarSweep').name('Radar Sweep');
+    radar_folder.add(guiControls, 'radarRings').name('Range Rings');
+    radar_folder.add(guiControls, 'radarSmooth').name('Smoothing');
+
+    radar_folder.open();
+
+    updateRadarLegend();
 
 
     display_folder.add(guiControls, 'twelveHourClock').name('12-hour clock');
@@ -4520,6 +4614,17 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
       // space bar
       guiControls.paused = !guiControls.paused;
       handlePause();
+    } else if (event.code == 'AltLeft' || event.code == 'AltRight') {
+      // ALT: toggle radar (thunder / precipitation) display
+      event.preventDefault();
+      if (event.repeat) return; // ignore auto-repeat while the key is held
+      if (guiControls.displayMode == 'DISP_RADAR') {
+        guiControls.displayMode = previousDisplayMode;
+      } else {
+        previousDisplayMode = guiControls.displayMode;
+        guiControls.displayMode = 'DISP_RADAR';
+      }
+
     } else if (event.code == 'KeyD') {
       // D
       guiControls.showDrops = !guiControls.showDrops;
@@ -4762,6 +4867,7 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
   const skyBackgroundDisplayShader = await loadShader('skyBackgroundDisplayShader.frag');
   const realisticDisplayShader = await loadShader('realisticDisplayShader.frag');
   const IRtempDisplayShader = await loadShader('IRtempDisplayShader.frag');
+  const radarDisplayShader = await loadShader('radarDisplayShader.frag');
 
   const postProcessingShader = await loadShader('postProcessingShader.frag');
   const isolateBrightPartsShader = await loadShader('isolateBrightPartsShader.frag');
@@ -4790,6 +4896,7 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
   const skyBackgroundDisplayProgram = createProgram(realDispVertexShader, skyBackgroundDisplayShader);
   const realisticDisplayProgram = createProgram(realDispVertexShader, realisticDisplayShader);
   const IRtempDisplayProgram = createProgram(dispVertexShader, IRtempDisplayShader);
+  const radarDisplayProgram = createProgram(dispVertexShader, radarDisplayShader);
 
   const postProcessingProgram = createProgram(postProcessingVertexShader, postProcessingShader);
   const isolateBrightPartsProgram = createProgram(postProcessingVertexShader, isolateBrightPartsShader);
@@ -5200,6 +5307,32 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
   const precipitationFeedbackTexture = gl.createTexture();
   const precipitationDepositionTexture = gl.createTexture();
   const lightningDataTexture = gl.createTexture(); // single pixel texture holding location and timing of current lightning strike
+
+  // Thunder history ring buffer: stores the last MAX_THUNDER_STRIKES lightning
+  // strikes so the radar can show persistent, fading "thunder cells".
+  const MAX_THUNDER_STRIKES = 48;
+  const thunderHistory = new Float32Array(MAX_THUNDER_STRIKES * 4); // x, y, startIter, intensity
+  let thunderHistoryHead = 0;
+  const thunderHistoryTexture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, thunderHistoryTexture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, MAX_THUNDER_STRIKES, 1, 0, gl.RGBA, gl.FLOAT, thunderHistory);
+
+  function recordLightningStrike(x, y, startIter, intensity)
+  {
+    const i = thunderHistoryHead % MAX_THUNDER_STRIKES;
+    thunderHistory[i * 4 + 0] = x;
+    thunderHistory[i * 4 + 1] = y;
+    thunderHistory[i * 4 + 2] = startIter;
+    thunderHistory[i * 4 + 3] = intensity;
+    thunderHistoryHead++;
+
+    gl.bindTexture(gl.TEXTURE_2D, thunderHistoryTexture);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, MAX_THUNDER_STRIKES, 1, gl.RGBA, gl.FLOAT, thunderHistory);
+  }
 
   // Static texures:
   const noiseTexture = gl.createTexture();
@@ -5670,6 +5803,17 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
   gl.uniform1i(gl.getUniformLocation(IRtempDisplayProgram, 'lightTex'), 0);
   gl.uniform1i(gl.getUniformLocation(IRtempDisplayProgram, 'wallTex'), 2);
 
+  gl.useProgram(radarDisplayProgram);
+  gl.uniform2f(gl.getUniformLocation(radarDisplayProgram, 'resolution'), sim_res_x, sim_res_y);
+  gl.uniform2f(gl.getUniformLocation(radarDisplayProgram, 'texelSize'), texelSizeX, texelSizeY);
+  gl.uniform1i(gl.getUniformLocation(radarDisplayProgram, 'baseTex'), 0);
+  gl.uniform1i(gl.getUniformLocation(radarDisplayProgram, 'waterTex'), 1);
+  gl.uniform1i(gl.getUniformLocation(radarDisplayProgram, 'wallTex'), 2);
+  gl.uniform1i(gl.getUniformLocation(radarDisplayProgram, 'lightningDataTex'), 4);
+  gl.uniform1i(gl.getUniformLocation(radarDisplayProgram, 'thunderTex'), 5);
+  gl.uniform1i(gl.getUniformLocation(radarDisplayProgram, 'thunderCount'), 0);
+  gl.uniform1f(gl.getUniformLocation(radarDisplayProgram, 'dryLapse'), dryLapse);
+
   gl.useProgram(postProcessingProgram);
   gl.uniform1i(gl.getUniformLocation(postProcessingProgram, 'hdrTex'), 0);
   gl.uniform1i(gl.getUniformLocation(postProcessingProgram, 'bloomTex'), 1);
@@ -5830,6 +5974,8 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
           inputType = 21;
         else if (guiControls.tool == 'TOOL_VEGETATION')
           inputType = 22;
+        else if (guiControls.tool == 'TOOL_WIND_DISABLER')
+          inputType = 23;
 
         var intensity = guiControls.brushIntensity;
 
@@ -6037,14 +6183,20 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
               gl.drawBuffers([ gl.COLOR_ATTACHMENT0 ]);
               gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-              if (guiControls.sound) {
+              // Only read back the lightning location when we actually need it.
+              // gl.readPixels is a synchronous GPU stall, so doing it every
+              // iteration (especially with IterPerFrame up to 50) causes micro-lags.
+              const wantStrikeData = guiControls.sound ||
+                                     (guiControls.displayMode == 'DISP_RADAR' && guiControls.showThunder);
+              if (wantStrikeData) {
                 gl.readBuffer(gl.COLOR_ATTACHMENT0);
                 var lightningDataValues = new Float32Array(4);
                 gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.FLOAT, lightningDataValues);
                 // console.log('lightningDataValues: ', lightningDataValues[0], lightningDataValues[1], lightningDataValues[2], iterNum, lightningDataValues[3]);
 
                 if (Math.round(lightningDataValues[2]) == iterNum) {
-                  soundSystem.soundThunder(lightningDataValues[0], lightningDataValues[1], Math.pow(lightningDataValues[3], 2.0));
+                  if (guiControls.sound) soundSystem.soundThunder(lightningDataValues[0], lightningDataValues[1], Math.pow(lightningDataValues[3], 2.0));
+                  recordLightningStrike(lightningDataValues[0], lightningDataValues[1], lightningDataValues[2], lightningDataValues[3]);
                 }
               }
             }
@@ -6439,6 +6591,32 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
 
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, lightTexture_0);
+      } else if (guiControls.displayMode == 'DISP_RADAR') {
+        gl.useProgram(radarDisplayProgram);
+        gl.uniform2f(gl.getUniformLocation(radarDisplayProgram, 'aspectRatios'), sim_aspect, canvas_aspect);
+        gl.uniform3f(gl.getUniformLocation(radarDisplayProgram, 'view'), cam.curXpos, cam.curYpos, cam.curZoom);
+        gl.uniform4f(gl.getUniformLocation(radarDisplayProgram, 'cursor'), mouseXinSim, mouseYinSim, guiControls.brushSize * 0.5, cursorType);
+        gl.uniform1f(gl.getUniformLocation(radarDisplayProgram, 'Xmult'), horizontalDisplayMult);
+        gl.uniform1f(gl.getUniformLocation(radarDisplayProgram, 'iterNum'), iterNum);
+
+        gl.uniform1f(gl.getUniformLocation(radarDisplayProgram, 'radarGain'), guiControls.radarGain);
+        gl.uniform1f(gl.getUniformLocation(radarDisplayProgram, 'radarGamma'), guiControls.radarGamma);
+        gl.uniform1f(gl.getUniformLocation(radarDisplayProgram, 'radarCloudMix'), guiControls.radarCloudMix);
+        gl.uniform1f(gl.getUniformLocation(radarDisplayProgram, 'radarBackground'), guiControls.radarBackground);
+        gl.uniform1f(gl.getUniformLocation(radarDisplayProgram, 'showThunder'), guiControls.showThunder ? 1.0 : 0.0);
+        gl.uniform1f(gl.getUniformLocation(radarDisplayProgram, 'thunderIntensity'), guiControls.thunderIntensity);
+        gl.uniform1i(gl.getUniformLocation(radarDisplayProgram, 'radarScheme'), guiControls.radarScheme);
+        gl.uniform1i(gl.getUniformLocation(radarDisplayProgram, 'radarProduct'), guiControls.radarProduct);
+        gl.uniform1f(gl.getUniformLocation(radarDisplayProgram, 'radarSweep'), guiControls.radarSweep ? 1.0 : 0.0);
+        gl.uniform1f(gl.getUniformLocation(radarDisplayProgram, 'radarRings'), guiControls.radarRings ? 1.0 : 0.0);
+        gl.uniform1f(gl.getUniformLocation(radarDisplayProgram, 'radarSmooth'), guiControls.radarSmooth ? 1.0 : 0.0);
+        gl.uniform1i(gl.getUniformLocation(radarDisplayProgram, 'thunderCount'), Math.min(thunderHistoryHead, MAX_THUNDER_STRIKES));
+        gl.uniform2f(gl.getUniformLocation(radarDisplayProgram, 'canvasResolution'), canvas.width, canvas.height);
+
+        gl.activeTexture(gl.TEXTURE4);
+        gl.bindTexture(gl.TEXTURE_2D, lightningDataTexture);
+        gl.activeTexture(gl.TEXTURE5);
+        gl.bindTexture(gl.TEXTURE_2D, thunderHistoryTexture);
       } else {
         gl.useProgram(universalDisplayProgram);
         gl.uniform2f(gl.getUniformLocation(universalDisplayProgram, 'aspectRatios'), sim_aspect, canvas_aspect);
@@ -6520,6 +6698,8 @@ async function mainScript(initialBaseTex, initialWaterTex, initialWallTex, initi
         weatherStations[i].updateCanvas(); // update weather stations
       }
     }
+
+    updateRadarLegendVisibility();
 
     frameNum++;
     requestAnimationFrame(draw);
